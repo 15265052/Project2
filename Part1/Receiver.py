@@ -10,8 +10,14 @@ from scipy import signal, integrate
 def receive(file_name):
     sample_rate = 48000
     channels = 1
-    record_seconds = 14
+    record_seconds = 5
     print("start recording")
+    asio_id = 20
+
+    asio_in = sd.AsioSettings(channel_selectors=[0])
+    sd.default.extra_settings = asio_in, None
+    sd.default.latency = 0.0015
+    sd.default.device[0] = asio_id
     frame = sd.rec(int(sample_rate * record_seconds),
                    samplerate=sample_rate,
                    channels=channels,
@@ -68,8 +74,8 @@ def decode_one_bit(s_buffer):
         return '1'
 
 
-# file_name = "test100.wav"
-# receive(file_name)
+file_name = "test100.wav"
+#receive(file_name)
 
 start = time.time()
 is_receiving = False
@@ -86,22 +92,22 @@ frame_num = 100
 detected_frame = 0
 symbol_per_frame = 100
 samples_per_symbol = 4
-# with sf.SoundFile(file_name) as sf_dest:
-#     data = sf_dest.read(dtype=np.float32)
-with open('INPUT.txt', 'r') as file:
-    file_data = file.read()
-input_index = 0
-symbols_in_frame = 100
-data = []
-for i in range(frame_num):
-    data.append(header)
-    for j in range(symbols_in_frame):
-        if file_data[input_index] == '0':
-            data.append(signal0)
-        else:
-            data.append(signal1)
-        input_index += 1
-data = np.concatenate(data)
+with sf.SoundFile(file_name) as sf_dest:
+    data = sf_dest.read(dtype=np.float32)
+# with open('INPUT.txt', 'r') as file:
+#     file_data = file.read()
+# input_index = 0
+# symbols_in_frame = 100
+# data = []
+# for i in range(frame_num):
+#     data.append(header)
+#     for j in range(symbols_in_frame):
+#         if file_data[input_index] == '0':
+#             data.append(signal0)
+#         else:
+#             data.append(signal1)
+#         input_index += 1
+# data = np.concatenate(data)
 
 corr = signal.correlate(data, header)
 plt.plot(range(len(corr)), corr)
