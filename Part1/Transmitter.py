@@ -16,12 +16,12 @@ def transmit(file_name):
     dump_frames(100000)
     while True:
         global_status = "sending RTX"
-        if can_send(stream):
+        if can_send():
             break
     print("1")
 
 
-def can_send(stream):
+def can_send():
     # confirm that can transmit
     max_waiting_time = 5
     start_waiting_time = time.time()
@@ -33,8 +33,9 @@ def can_send(stream):
         block_buffer = global_buffer[pointer:pointer + block_size]
         pointer_CTX = detect_preamble(block_buffer)
         if not pointer_CTX == "error":
-            CTX_detected = global_buffer[pointer + pointer_CTX:pointer + pointer_CTX + len(CTX)]
-            global_pointer += pointer + pointer_CTX + len(CTX)
+            pointer += pointer_CTX
+            CTX_detected = global_buffer[pointer:pointer + len(CTX)-preamble_length]
+            global_pointer += pointer + len(RTX)-preamble_length
             return verify_CTX(CTX_detected)
         pointer += block_size
     global_pointer += pointer

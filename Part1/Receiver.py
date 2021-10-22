@@ -23,17 +23,15 @@ def receive(file_name):
         block_buffer = global_buffer[pointer:pointer + block_size]
         pointer_RTX = detect_preamble(block_buffer)
         if not pointer_RTX == "error":
-            print(pointer_RTX)
             pointer += pointer_RTX
             RTX_detected = global_buffer[pointer : pointer + len(RTX) - preamble_length]
-            global_pointer += pointer + pointer_RTX + len(RTX)-preamble_length
+            global_pointer += pointer + len(RTX)-preamble_length
             if verify_RTX(RTX_detected):
                 global_status = "sending CTX"
                 break
         pointer += block_size
     global_pointer += pointer
 
-    stream.stop()
     print("test finished!")
 
 
@@ -85,6 +83,7 @@ def callback(indata, outdata, frames, time, status):
         outdata.fill(0)
 
     if global_status == "sending CTX":
+        print(global_status)
         outdata[:] = np.append(CTX, np.zeros(block_size-len(CTX))).reshape(1024, 1)
         global_status = ""
 

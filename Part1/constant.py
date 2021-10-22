@@ -64,7 +64,7 @@ signal0 = (np.sin(2 * np.pi * 2000 * np.arange(0, 0.0005, 1 / sample_rate))).ast
 signal1 = (-np.sin(2 * np.pi * 2000 * np.arange(0, 0.0005, 1 / sample_rate))).astype(np.float32)
 latency = 0.0015
 block_size = 1024
-threshold = 0.5
+threshold = 10
 asio_id = 10
 asio_in = sd.AsioSettings(channel_selectors=[0])
 asio_out = sd.AsioSettings(channel_selectors=[1])
