@@ -11,35 +11,34 @@ def transmit(file_name):
     # send RTX to custom
     stream = set_stream()
     stream.start()
+    global global_status
     # send RTX and wait for CTX
+    dump_frames(100000)
     while True:
-        stream.write(RTX)
+        global_status = "sending RTX"
         if can_send(stream):
             break
     print("1")
 
 
-
 def can_send(stream):
-    #confirm that can transmit
-    max_waiting_time = 5
+    # confirm that can transmit
+    max_waiting_time = 5 * 1000
     start_waiting_time = stream.time
+    global global_pointer
+    pointer = global_pointer
     while stream.time - start_waiting_time < max_waiting_time:
-        block_buffer = stream.read(block_size)
+        if pointer + block_size > len(global_buffer):
+            continue
+        block_buffer = global_buffer[pointer:pointer + block_size]
         pointer_CTX = detect_preamble(block_buffer)
         if not pointer_CTX == "error":
-            remain_CTX_size = len(CTX) - (block_size - pointer_CTX)
-            if remain_CTX_size > 0:
-                CTX_detected = block_buffer[pointer_CTX:]
-                CTX_detected.append(stream.read(remain_CTX_size))
-            else:
-                CTX_detected = block_buffer[pointer_CTX: pointer_CTX + len(CTX)]
+            CTX_detected = global_buffer[pointer + pointer_CTX:pointer + pointer_CTX + len(CTX)]
+            global_pointer += pointer + pointer_CTX + len(CTX)
             return verify_CTX(CTX_detected)
-
+        pointer += block_size
+    global_pointer += pointer
     return False
-
-
-
 
 
 def gen_data(file_name):
@@ -65,8 +64,9 @@ def gen_data(file_name):
 def set_stream():
     sd.default.extra_settings = asio_in, asio_out
     sd.default.latency = latency
+    sd.default.device[0] = asio_id
     sd.default.device[1] = asio_id
-    stream = sd.Stream(sample_rate, block_size, dtype=np.float32)
+    stream = sd.Stream(sample_rate, block_size, dtype=np.float32, device=asio_id, channels=1, callback=callback)
     return stream
 
 
@@ -91,6 +91,31 @@ def decode_one_bit(s_buffer):
     else:
         return '1'
 
+
+def callback(indata, outdata, frames, time, status):
+    global global_buffer
+    global global_pointer
+    global global_status
+    global_buffer = np.append(global_buffer, indata[:])
+    dump_frames(global_pointer)
+    global_pointer = 0
+
+    if global_status == "":
+        outdata.fill(0)
+
+    if global_status == "sending RTX":
+        outdata[:] = RTX
+        global_status = ""
+
+
+def dump_frames(frames):
+    global global_buffer
+    global_buffer = global_buffer[frames:]
+
+
+global_buffer = np.array([])
+global_pointer = 0
+global_status = ""
 
 start = time.time()
 transmit("INPUT.txt")

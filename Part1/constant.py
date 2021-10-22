@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import sounddevice as sd
 from scipy import signal, integrate
@@ -47,6 +48,8 @@ def gen_preamble():
 
 def detect_preamble(block_buffer):
     corr = np.abs(signal.correlate(block_buffer, preamble))
+    plt.plot(range(len(corr)), corr)
+    plt.show()
     if np.max(corr) > threshold:
         # detect preamble
         return np.argmax(corr) + 1
