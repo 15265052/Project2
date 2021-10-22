@@ -25,13 +25,16 @@ def receive(file_name):
         if not pointer_RTX == "error":
             print(pointer_RTX)
             pointer += pointer_RTX
-            RTX_detected = global_buffer[pointer : pointer + len(RTX)]
+            RTX_detected = global_buffer[pointer : pointer + len(RTX) - preamble_length]
             global_pointer += pointer + pointer_RTX + len(RTX)-preamble_length
             if verify_RTX(RTX_detected):
                 global_status = "sending CTX"
                 break
         pointer += block_size
     global_pointer += pointer
+
+    stream.stop()
+    print("test finished!")
 
 
 def decode_one_bit(s_buffer):
@@ -55,8 +58,6 @@ def verify_RTX(RTX_buffer):
     RTX_string = "1010101"
     str_decoded = ""
     pointer = 0
-    plt.plot(range(len(RTX_buffer)), RTX_buffer)
-    plt.show()
     for i in range(7):
         decode_buffer = RTX_buffer[pointer: pointer + samples_per_symbol]
         str_decoded += decode_one_bit(decode_buffer)
@@ -73,7 +74,7 @@ def callback(indata, outdata, frames, time, status):
     global global_pointer
     global global_status
     # global ed
-    global_buffer = np.append(global_buffer, indata[:])
+    global_buffer = np.append(global_buffer, indata[:, 0])
     dump_frames(global_pointer)
     global_pointer = 0
     # if t.time() - t1 > 15 and ed:
@@ -96,8 +97,6 @@ def dump_frames(frames):
 global_buffer = np.array([])
 global_pointer = 0
 global_status = ""
-# ed = True
-# t1 = t.time()
 file_name = "test100.wav"
 receive(file_name)
 

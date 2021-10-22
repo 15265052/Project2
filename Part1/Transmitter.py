@@ -23,11 +23,11 @@ def transmit(file_name):
 
 def can_send(stream):
     # confirm that can transmit
-    max_waiting_time = 5 * 1000
-    start_waiting_time = stream.time
+    max_waiting_time = 5
+    start_waiting_time = time.time()
     global global_pointer
     pointer = global_pointer
-    while stream.time - start_waiting_time < max_waiting_time:
+    while time.time() - start_waiting_time < max_waiting_time:
         if pointer + block_size > len(global_buffer):
             continue
         block_buffer = global_buffer[pointer:pointer + block_size]
@@ -104,7 +104,8 @@ def callback(indata, outdata, frames, time, status):
         outdata.fill(0)
 
     if global_status == "sending RTX":
-        outdata[:] = np.append(RTX, np.zeros(block_size-len(RTX))).reshape(1024, 1)
+        print(global_status)
+        outdata[:] = np.append(RTX, np.zeros(block_size-len(RTX))).reshape(block_size, 1)
         global_status = ""
 
 
