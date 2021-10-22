@@ -1,4 +1,4 @@
-import time
+import time as t
 
 import matplotlib.pyplot as plt
 import soundfile as sf
@@ -23,8 +23,10 @@ def receive(file_name):
         block_buffer = global_buffer[pointer:pointer + block_size]
         pointer_RTX = detect_preamble(block_buffer)
         if not pointer_RTX == "error":
-            RTX_detected = global_buffer[pointer + pointer_RTX:pointer + pointer_RTX + len(CTX)]
-            global_pointer += pointer + pointer_RTX + len(RTX)
+            print(pointer_RTX)
+            pointer += pointer_RTX
+            RTX_detected = global_buffer[pointer : pointer + len(RTX)]
+            global_pointer += pointer + pointer_RTX + len(RTX)-preamble_length
             if verify_RTX(RTX_detected):
                 global_status = "sending CTX"
                 break
@@ -45,7 +47,7 @@ def set_stream():
     sd.default.latency = latency
     sd.default.device[0] = asio_id
     sd.default.device[1] = asio_id
-    stream = sd.Stream(sample_rate, block_size, dtype=np.float32)
+    stream = sd.Stream(sample_rate, block_size, dtype=np.float32, callback=callback)
     return stream
 
 
@@ -53,6 +55,8 @@ def verify_RTX(RTX_buffer):
     RTX_string = "1010101"
     str_decoded = ""
     pointer = 0
+    plt.plot(range(len(RTX_buffer)), RTX_buffer)
+    plt.show()
     for i in range(7):
         decode_buffer = RTX_buffer[pointer: pointer + samples_per_symbol]
         str_decoded += decode_one_bit(decode_buffer)
@@ -68,15 +72,19 @@ def callback(indata, outdata, frames, time, status):
     global global_buffer
     global global_pointer
     global global_status
+    # global ed
     global_buffer = np.append(global_buffer, indata[:])
     dump_frames(global_pointer)
     global_pointer = 0
-
+    # if t.time() - t1 > 15 and ed:
+    #     plt.plot(range(len(global_buffer)), global_buffer)
+    #     plt.show()
+    #     ed = False
     if global_status == "":
         outdata.fill(0)
 
     if global_status == "sending CTX":
-        outdata[:] = CTX
+        outdata[:] = np.append(CTX, np.zeros(block_size-len(CTX))).reshape(1024, 1)
         global_status = ""
 
 
@@ -85,8 +93,11 @@ def dump_frames(frames):
     global_buffer = global_buffer[frames:]
 
 
-file_name = "test100.wav"
-receive(file_name)
 global_buffer = np.array([])
 global_pointer = 0
 global_status = ""
+# ed = True
+# t1 = t.time()
+file_name = "test100.wav"
+receive(file_name)
+

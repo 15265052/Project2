@@ -40,18 +40,19 @@ def gen_CTX():
 def gen_preamble():
     """ header for 0.01 second"""
     t = np.linspace(0, 1, 48000, endpoint=True, dtype=np.float32)
-    t = t[0:120]
-    f_p = np.concatenate([np.linspace(2500, 8000, 60), np.linspace(8000, 2500, 60)])
+    t = t[0:60]
+    f_p = np.concatenate([np.linspace(1000, 10000, 30), np.linspace(10000, 1000, 30)])
     preamble = (np.sin(2 * np.pi * integrate.cumtrapz(f_p, t))).astype(np.float32)
     return preamble
 
 
 def detect_preamble(block_buffer):
-    corr = np.abs(signal.correlate(block_buffer, preamble))
-    plt.plot(range(len(corr)), corr)
-    plt.show()
+    corr = signal.correlate(block_buffer, preamble)
     if np.max(corr) > threshold:
         # detect preamble
+        print("detected a frame!")
+        plt.plot(range(len(corr)), corr)
+        plt.show()
         return np.argmax(corr) + 1
     else:
         return "error"
@@ -62,8 +63,8 @@ sample_rate = 48000
 signal0 = (np.sin(2 * np.pi * 2000 * np.arange(0, 0.0005, 1 / sample_rate))).astype(np.float32)
 signal1 = (-np.sin(2 * np.pi * 2000 * np.arange(0, 0.0005, 1 / sample_rate))).astype(np.float32)
 latency = 0.0015
-block_size = 1024
-threshold = 20
+block_size = 512
+threshold = 0.08
 asio_id = 10
 asio_in = sd.AsioSettings(channel_selectors=[0])
 asio_out = sd.AsioSettings(channel_selectors=[1])
@@ -72,3 +73,4 @@ RTX = gen_RTX()
 CTX = gen_CTX()
 preamble_length = len(preamble)
 samples_per_symbol = 24
+

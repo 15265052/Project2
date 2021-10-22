@@ -104,7 +104,7 @@ def callback(indata, outdata, frames, time, status):
         outdata.fill(0)
 
     if global_status == "sending RTX":
-        outdata[:] = RTX
+        outdata[:] = np.append(RTX, np.zeros(block_size-len(RTX))).reshape(1024, 1)
         global_status = ""
 
 
