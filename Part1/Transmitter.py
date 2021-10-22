@@ -23,7 +23,7 @@ def transmit(file_name):
 
 def can_send():
     # confirm that can transmit
-    max_waiting_time = 5
+    max_waiting_time = 10
     start_waiting_time = time.time()
     global global_pointer
     pointer = global_pointer

@@ -15,6 +15,7 @@ def receive(file_name):
     global global_status
     global global_pointer
     global global_buffer
+    global ed
     dump_frames(100000)
     pointer = global_pointer
     while True:
@@ -32,7 +33,8 @@ def receive(file_name):
         pointer += block_size
     global_pointer += pointer
 
-    print("test finished!")
+    while True:
+        pass
 
 
 def decode_one_bit(s_buffer):
@@ -71,7 +73,6 @@ def callback(indata, outdata, frames, time, status):
     global global_buffer
     global global_pointer
     global global_status
-    # global ed
     global_buffer = np.append(global_buffer, indata[:, 0])
     dump_frames(global_pointer)
     global_pointer = 0
