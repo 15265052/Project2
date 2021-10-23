@@ -18,17 +18,23 @@ def transmit():
     dump_frames(100000)
     while True:
         global_status = "sending RTX"
+        while global_status != "RTX sent":
+            pass
+        global_status = ""
         if can_send():
             print("CTX_detected....")
             break
 
     print("Starting sending data...")
     # transmit data
+    time.sleep(1)
+    start = time.time()
     while index < len(data):
         global_status = "sending data"
 
     stream.stop()
     print("transmit finished...")
+    print("Transmitting time: ", time.time() - start)
 
 
 def can_send():
@@ -46,8 +52,10 @@ def can_send():
         if not pointer_CTX == "error":
             pointer += pointer_CTX
             CTX_detected = global_buffer[pointer:pointer + len(CTX) - preamble_length]
-            global_pointer += pointer + len(RTX) - preamble_length
-            return verify_CTX(CTX_detected)
+            if verify_CTX(CTX_detected):
+                return True
+            else:
+                continue
         pointer += block_size
     global_pointer += pointer
     print("wait timed out...")
@@ -59,18 +67,17 @@ def gen_data(file_name):
         file_data = file.read()
     file_data = file_data.decode("ascii")
     input_index = 0
-    symbols_in_frame = 100
-    frame_num = int(len(file_data) / symbols_in_frame)
-    if frame_num * 100 < len(file_data):
-        frame_num += 1
+    bytes_in_frame = 25
     data = []
     for i in range(frame_num):
+        data.append(np.zeros(240))
         data.append(preamble)
-        for j in range(symbols_in_frame):
-            if file_data[input_index] == b'0':
-                data.append(signal0)
-            else:
-                data.append(signal1)
+        for j in range(bytes_in_frame):
+            for m in byte_to_str(file_data[input_index]):
+                if m == '0':
+                    data.append(signal0)
+                else:
+                    data.append(signal1)
             input_index += 1
     return np.concatenate(data)
 
@@ -89,9 +96,9 @@ def verify_CTX(CTX_buffer):
     str_decoded = ""
     pointer = 0
     for i in range(7):
-        decode_buffer = CTX_buffer[pointer: pointer + samples_per_symbol]
+        decode_buffer = CTX_buffer[pointer: pointer + samples_per_bin]
         str_decoded += decode_one_bit(decode_buffer)
-        pointer += samples_per_symbol
+        pointer += samples_per_bin
 
     if CTX_string == str_decoded:
         return True
@@ -110,9 +117,8 @@ def callback(indata, outdata, frames, time, status):
     global global_buffer
     global global_pointer
     global global_status
-    global_buffer = np.append(global_buffer, indata[:])
-    dump_frames(global_pointer)
-    global_pointer = 0
+    global data
+    global_buffer = np.append(global_buffer, indata[:, 0])
 
     if global_status == "":
         outdata.fill(0)
@@ -120,14 +126,15 @@ def callback(indata, outdata, frames, time, status):
     if global_status == "sending RTX":
         print(global_status)
         outdata[:] = np.append(RTX, np.zeros(block_size - len(RTX))).reshape(block_size, 1)
-        global_status = ""
+        global_status = "RTX sent"
 
     if global_status == "sending data":
         global index
         if len(data) - index > block_size:
-            outdata[:] = np.arrays(data[index:index + block_size]).reshape(block_size, 1)
+            outdata[:] = np.array(data[index:index + block_size]).reshape(block_size, 1)
         else:
-            outdata[:] = np.append(data[index:], np.zeros(block_size - len(data) + index)).reshape(block_size, 1)
+            if len(data) - index >= 0:
+                outdata[:] = np.append(data[index:], np.zeros(block_size - len(data) + index)).reshape(block_size, 1)
         index += block_size
 
 
@@ -143,5 +150,4 @@ index = 0
 data = gen_data("INPUT.bin")
 start = time.time()
 transmit()
-end = time.time()
-print("Transmitting time: ", end - start)
+
