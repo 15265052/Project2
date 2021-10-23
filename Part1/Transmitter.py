@@ -65,7 +65,7 @@ def can_send():
 def gen_data(file_name):
     with open(file_name, 'rb') as file:
         file_data = file.read()
-    file_data = file_data.decode("ascii")
+    file_data = struct.unpack("c" * len(file_data), file_data)
     input_index = 0
     bytes_in_frame = 25
     data = []
