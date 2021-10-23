@@ -6,19 +6,27 @@ import matplotlib.pyplot as plt
 from constant import *
 
 
-def transmit(file_name):
-    data = gen_data(file_name)
-    # send RTX to custom
+def transmit():
+    # send RTX
     stream = set_stream()
     stream.start()
     global global_status
+    global index
     # send RTX and wait for CTX
     dump_frames(100000)
     while True:
         global_status = "sending RTX"
         if can_send():
+            print("CTX_detected....")
             break
-    print("1")
+
+    print("Starting sending data...")
+    # transmit data
+    while index < len(data):
+        global_status = "sending data"
+
+    stream.stop()
+    print("transmit finished...")
 
 
 def can_send():
@@ -27,6 +35,7 @@ def can_send():
     start_waiting_time = time.time()
     global global_pointer
     pointer = global_pointer
+    print("waiting for CTX, max waiting time: ", max_waiting_time, "s....")
     while time.time() - start_waiting_time < max_waiting_time:
         if pointer + block_size > len(global_buffer):
             continue
@@ -34,11 +43,12 @@ def can_send():
         pointer_CTX = detect_preamble(block_buffer)
         if not pointer_CTX == "error":
             pointer += pointer_CTX
-            CTX_detected = global_buffer[pointer:pointer + len(CTX)-preamble_length]
-            global_pointer += pointer + len(RTX)-preamble_length
+            CTX_detected = global_buffer[pointer:pointer + len(CTX) - preamble_length]
+            global_pointer += pointer + len(RTX) - preamble_length
             return verify_CTX(CTX_detected)
         pointer += block_size
     global_pointer += pointer
+    print("wait timed out...")
     return False
 
 
@@ -106,8 +116,16 @@ def callback(indata, outdata, frames, time, status):
 
     if global_status == "sending RTX":
         print(global_status)
-        outdata[:] = np.append(RTX, np.zeros(block_size-len(RTX))).reshape(block_size, 1)
+        outdata[:] = np.append(RTX, np.zeros(block_size - len(RTX))).reshape(block_size, 1)
         global_status = ""
+
+    if global_status == "sending data":
+        global index
+        if len(data) - index > block_size:
+            outdata[:] = np.arrays(data[index:index + block_size]).reshape(block_size, 1)
+        else:
+            outdata[:] = np.append(data[index:], np.zeros(block_size - len(data) + index)).reshape(block_size, 1)
+        index += block_size
 
 
 def dump_frames(frames):
@@ -118,8 +136,9 @@ def dump_frames(frames):
 global_buffer = np.array([])
 global_pointer = 0
 global_status = ""
-
+index = 0
+data = gen_data("INPUT.txt")
 start = time.time()
-transmit("INPUT.txt")
+transmit()
 end = time.time()
 print("Transmitting time: ", end - start)

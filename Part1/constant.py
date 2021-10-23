@@ -3,6 +3,7 @@ import numpy as np
 import sounddevice as sd
 from scipy import signal, integrate
 
+
 def gen_RTX():
     """
     RTX for inform receiver that it is about to transmit data
@@ -58,6 +59,11 @@ def detect_preamble(block_buffer):
         return "error"
 
 
+def write_to_file(file_name, data):
+    with open(file_name, 'a') as f:
+        f.write(data)
+
+
 sample_rate = 48000
 
 signal0 = (np.sin(2 * np.pi * 2000 * np.arange(0, 0.0005, 1 / sample_rate))).astype(np.float32)
@@ -73,4 +79,5 @@ RTX = gen_RTX()
 CTX = gen_CTX()
 preamble_length = len(preamble)
 samples_per_symbol = 24
-
+frame_num = 100
+frame_length = samples_per_symbol * 100 + preamble_length
