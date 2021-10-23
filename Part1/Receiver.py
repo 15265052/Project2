@@ -39,6 +39,7 @@ def receive(file_name):
 
     # start to receive data
     print("Starting receiving data....")
+    clean_file("OUTPUT.txt")
     start = time.time()
     pointer = global_pointer
     detected_frame = 0
