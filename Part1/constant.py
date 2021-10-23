@@ -70,6 +70,12 @@ def str_to_byte(str_buffer):
     return temp.to_bytes(1, 'big')
 
 
+def byte_to_str(byte):
+    temp_bin = int.from_bytes(byte, 'big')
+    bi = bin(temp_bin)[2:]
+    return (8 - len(bi)) * "0" + bi
+
+
 sample_rate = 48000
 
 signal0 = (np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).astype(np.float32)
@@ -77,7 +83,7 @@ signal1 = (-np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).
 latency = 0.0015
 block_size = 1024
 threshold = 10
-asio_id = 10
+asio_id = 14
 asio_in = sd.AsioSettings(channel_selectors=[0])
 asio_out = sd.AsioSettings(channel_selectors=[1])
 preamble = gen_preamble()
