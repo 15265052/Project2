@@ -1,11 +1,10 @@
-
+import time
 import time as t
 
 import matplotlib.pyplot as plt
 import soundfile as sf
 import sounddevice as sd
 import numpy as np
-from bottleneck.benchmark.bench import timer
 from scipy import signal, integrate
 from constant import *
 
@@ -17,7 +16,6 @@ def receive():
     global global_status
     global global_pointer
     global global_buffer
-    global de
     dump_frames(100000)
     pointer = global_pointer
     print("Waiting For Transmitting....")
@@ -30,6 +28,7 @@ def receive():
         if not pointer_RTX == "error":
             pointer += pointer_RTX
             RTX_detected = global_buffer[pointer: pointer + len(RTX) - preamble_length]
+            global_pointer += pointer + len(RTX) - preamble_length
             if verify_RTX(RTX_detected):
                 # detected a RTX, send CTX
                 print("RTX detected....")
@@ -41,7 +40,7 @@ def receive():
     # start to receive data
     print("Starting receiving data....")
     clean_file("OUTPUT.bin")
-    start = t.time()
+    start = time.time()
     pointer = global_pointer
     detected_frame = 0
     while detected_frame < frame_num:
@@ -52,16 +51,12 @@ def receive():
         if not pointer_data == "error":
             pointer += pointer_data
             detected_frame += 1
-            if pointer + frame_length - preamble_length > len(global_buffer):
-                t.sleep(0.1)
-            data_detected = global_buffer[pointer: pointer + frame_length - preamble_length]
+            data_detected = global_pointer[pointer: pointer + frame_length - preamble_length]
+            global_pointer += pointer + frame_length - preamble_length
             decode(data_detected)
-            pointer += frame_length - preamble_length
-            continue
-        pointer += block_size
     stream.stop()
     print("receive finished")
-    print("receiving time: ", t.time()-start)
+    print("receiving time: ", time.time() - start)
 
 
 def decode_one_bit(s_buffer):
@@ -75,13 +70,12 @@ def decode_one_bit(s_buffer):
 def decode(frame_buffer):
     str_decoded = ""
     pointer = 0
-    for i in range(bytes_per_frame):
-        for j in range(bins_per_byte):
-            decode_buffer = frame_buffer[pointer: pointer + samples_per_bin]
-            str_decoded += decode_one_bit(decode_buffer)
-            pointer += samples_per_bin
-        write_to_file("OUTPUT.bin", str_to_byte(str_decoded))
-        str_decoded = ""
+    for i in range(100):
+        decode_buffer = frame_buffer[pointer: pointer + samples_per_symbol]
+        str_decoded += decode_one_bit(decode_buffer)
+        pointer += samples_per_symbol
+
+    write_to_file("OUTPUT.bin", str_decoded)
 
 
 def set_stream():
@@ -98,9 +92,9 @@ def verify_RTX(RTX_buffer):
     str_decoded = ""
     pointer = 0
     for i in range(7):
-        decode_buffer = RTX_buffer[pointer: pointer + samples_per_bin]
+        decode_buffer = RTX_buffer[pointer: pointer + samples_per_symbol]
         str_decoded += decode_one_bit(decode_buffer)
-        pointer += samples_per_bin
+        pointer += samples_per_symbol
 
     if RTX_string == str_decoded:
         return True
@@ -113,6 +107,8 @@ def callback(indata, outdata, frames, time, status):
     global global_pointer
     global global_status
     global_buffer = np.append(global_buffer, indata[:, 0])
+    dump_frames(global_pointer)
+    global_pointer = 0
     # if t.time() - t1 > 15 and ed:
     #     plt.plot(range(len(global_buffer)), global_buffer)
     #     plt.show()
@@ -134,5 +130,5 @@ def dump_frames(frames):
 global_buffer = np.array([])
 global_pointer = 0
 global_status = ""
-de = False
-receive()
+file_name = "test100.wav"
+receive(file_name)

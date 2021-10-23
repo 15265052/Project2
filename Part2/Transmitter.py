@@ -57,7 +57,7 @@ def can_send():
 def gen_data(file_name):
     with open(file_name, 'rb') as file:
         file_data = file.read()
-    file_data = file_data.decode("ascii")
+    file_data = struct.unpack("c" * len(file_data), file_data)
     input_index = 0
     symbols_in_frame = 100
     frame_num = int(len(file_data) / symbols_in_frame)
@@ -140,7 +140,7 @@ global_buffer = np.array([])
 global_pointer = 0
 global_status = ""
 index = 0
-data = gen_data("INPUT.bin")
+data = gen_data("../Part1/INPUT.txt")
 start = time.time()
 transmit()
 end = time.time()

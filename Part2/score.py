@@ -1,6 +1,6 @@
-length_str=6250
-fin=open("INPUT.bin", "rb")
-fout=open("OUTPUT.bin", "rb")
+length_str=10000
+fin=open("../Part1/INPUT.txt", "r")
+fout=open("OUTPUT.txt", "r")
 count=0
 for i in range(length_str):
     strin=fin.read(1)
@@ -10,4 +10,4 @@ for i in range(length_str):
     else:
         print("error: INPUT : ",strin," OUTPUT: ", strout, "index: ", i)
 
-print(str(count/length_str*100)+"%")
+print(str(count/10000*100)+"%")
