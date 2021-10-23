@@ -39,7 +39,7 @@ def receive(file_name):
 
     # start to receive data
     print("Starting receiving data....")
-    clean_file("OUTPUT.txt")
+    clean_file("OUTPUT.bin")
     start = time.time()
     pointer = global_pointer
     detected_frame = 0
@@ -75,7 +75,7 @@ def decode(frame_buffer):
         str_decoded += decode_one_bit(decode_buffer)
         pointer += samples_per_symbol
 
-    write_to_file("OUTPUT.txt", str_decoded)
+    write_to_file("OUTPUT.bin", str_decoded)
 
 
 def set_stream():

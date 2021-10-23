@@ -61,11 +61,13 @@ def detect_preamble(block_buffer):
 
 def write_to_file(file_name, data):
     with open(file_name, 'a') as f:
-        f.write(data)
+        f.write(data.encode('utf-8'))
+
 
 def clean_file(file_name):
     with open(file_name, 'w') as f:
         f.truncate()
+
 
 sample_rate = 48000
 
