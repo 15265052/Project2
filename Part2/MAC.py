@@ -2,6 +2,8 @@ import struct
 import threading
 import time
 
+import matplotlib.pyplot as plt
+
 from all_globals import *
 from constant import *
 
@@ -36,15 +38,20 @@ class MAC(threading.Thread):
         # Tx Done to clear Tx Frame and set input index to 0
         global TxFrame
         global global_input_index
+        global  detected_frames
         TxFrame = []
         global_input_index = 0
 
         while True:
             if pointer + block_size > len(global_buffer):
                 continue
+            if detected_frames >= frame_num:
+                break
             block_buffer = global_buffer[pointer:pointer + block_size]
             pointer_frame = detect_preamble(block_buffer)
             if not pointer_frame == "error":
+                detected_frames += 1
+                print(detected_frames)
                 pointer += pointer_frame
                 if pointer + frame_length - preamble_length > len(global_buffer):
                     time.sleep(0.2)
@@ -56,6 +63,7 @@ class MAC(threading.Thread):
                 continue
             pointer += block_size
         global_pointer += pointer
+        stream.stop()
 
     def put_data_into_TxBuffer(self, data):
         global TxFrame
@@ -216,7 +224,7 @@ def callback(indata, outdata, frames, time, status):
     global global_buffer
     global global_pointer
     global global_status
-    global_buffer = np.append(global_buffer, indata[:])
+    global_buffer = np.append(global_buffer, indata[:,0])
 
     if global_status == "":
         outdata.fill(0)
