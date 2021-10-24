@@ -51,28 +51,35 @@ def detect_preamble(block_buffer):
     corr = signal.correlate(block_buffer, preamble)
     if np.max(corr) > threshold:
         # detect preamble
-        print("detected a frame!")
-        plt.plot(range(len(corr)), corr)
-        plt.show()
         return np.argmax(corr) + 1
     else:
         return "error"
 
 
 def write_to_file(file_name, data):
-    with open(file_name, 'a') as f:
-        f.write(data.encode('utf-8'))
+    with open(file_name, 'ab') as f:
+        f.write(data)
 
 
 def clean_file(file_name):
     with open(file_name, 'w') as f:
         f.truncate()
 
+def str_to_byte(str_buffer):
+    temp = int(str_buffer, 2)
+    return temp.to_bytes(1, 'big')
+
+
+def byte_to_str(byte):
+    temp_bin = int.from_bytes(byte, 'big')
+    bi = bin(temp_bin)[2:]
+    return (8 - len(bi)) * "0" + bi
+
 
 sample_rate = 48000
 
-signal0 = (np.sin(2 * np.pi * 2000 * np.arange(0, 0.0005, 1 / sample_rate))).astype(np.float32)
-signal1 = (-np.sin(2 * np.pi * 2000 * np.arange(0, 0.0005, 1 / sample_rate))).astype(np.float32)
+signal0 = (np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).astype(np.float32)
+signal1 = (-np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).astype(np.float32)
 latency = 0.0015
 block_size = 1024
 threshold = 10
@@ -83,6 +90,8 @@ preamble = gen_preamble()
 RTX = gen_RTX()
 CTX = gen_CTX()
 preamble_length = len(preamble)
-samples_per_symbol = 24
-frame_num = 100
-frame_length = samples_per_symbol * 100 + preamble_length
+bins_per_byte = 8
+samples_per_bin = 6
+frame_num = 250
+bytes_per_frame = 25
+frame_length = samples_per_bin * bins_per_byte * bytes_per_frame + preamble_length
