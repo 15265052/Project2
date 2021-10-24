@@ -25,6 +25,7 @@ class MAC(threading.Thread):
         global global_pointer
         global stream
         pointer = global_pointer
+        print("Frame Detecting")
         if self.node_name == "Transmitter":
             # Transmitter to send data first
             data = self.gen_data("INPUT.bin")
@@ -82,7 +83,6 @@ class MAC(threading.Thread):
         Tx_condition.acquire()
         Tx_condition.notify()
         Tx_condition.release()
-        print("Tx notified")
         MAC_condition.acquire()
         MAC_condition.wait()
 
@@ -122,7 +122,16 @@ class Rx(threading.Thread):
             self.decode(RxFrame)
             RxFrame = []
             print("received one packet...")
+            self.switch_state("MAC")
             self.switch_to_MAC()
+
+    def switch_state(self, dest_state):
+        global node_state
+        global state_lock
+        print("Rx: switching from ", node_state, "to", dest_state)
+        state_lock.acquire()
+        node_state = dest_state
+        state_lock.release()
 
     def decode(self, frame_buffer):
         str_decoded = ""
@@ -145,6 +154,7 @@ class Rx(threading.Thread):
     def switch_to_MAC(self):
         global MAC_condition
         global Rx_condition
+        print("Frame Detecting")
         MAC_condition.acquire()
         MAC_condition.notify()
         MAC_condition.release()
@@ -186,11 +196,13 @@ class Tx(threading.Thread):
     def switch_to_MAC(self):
         global MAC_condition
         global Tx_condition
+        print("Frame Detecting")
         MAC_condition.acquire()
         MAC_condition.notify()
         MAC_condition.release()
         Tx_condition.acquire()
         Tx_condition.wait()
+
 
 def set_stream():
     sd.default.extra_settings = asio_in, asio_out
@@ -216,7 +228,8 @@ def callback(indata, outdata, frames, time, status):
             outdata[:] = np.array(TxFrame[global_input_index:global_input_index + block_size]).reshape(block_size, 1)
         else:
             if len(TxFrame) - global_input_index >= 0:
-                outdata[:] = np.append(TxFrame[global_input_index:], np.zeros(block_size - len(TxFrame) + global_input_index)).reshape(block_size, 1)
+                outdata[:] = np.append(TxFrame[global_input_index:],
+                                       np.zeros(block_size - len(TxFrame) + global_input_index)).reshape(block_size, 1)
         global_input_index += block_size
 
 
