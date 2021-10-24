@@ -1,5 +1,7 @@
 import struct
 import threading
+import time
+
 from all_globals import *
 from constant import *
 
@@ -43,6 +45,8 @@ class MAC(threading.Thread):
             pointer_frame = detect_preamble(block_buffer)
             if not pointer_frame == "error":
                 pointer += pointer_frame
+                if pointer + frame_length - preamble_length > len(global_buffer):
+                    time.sleep(0.2)
                 frame_detected = global_buffer[pointer: pointer + frame_length - preamble_length]
                 self.put_frame_into_RxBuffer(frame_detected)
                 self.switch_state("Rx")
