@@ -78,20 +78,58 @@ def byte_to_str(byte):
 
 
 def gen_CRC8(string):
-    crc8 = '100000111'  # C(x) = 100000111
-    decCrc8 = int(crc8, 2)
-    newString = string + '00000000'
-    decString = int(newString, 2)
-    decMod = decString % decCrc8
-    newDecString = decString - decMod
-    newBinString = bin(newDecString)
-    return newBinString[2:]
+    loc = [8, 2, 1, 0]
+    p = [0 for i in range(9)]
+    for i in loc:
+        p[i] = 1
+    info = list(string)
+    info = [int(i) for i in info]
+    info1 = list(string)
+    info1 = [int(i) for i in info1]
+    # print(info)
+    times = len(info)
+    n = 9
+    for i in range(8):
+        info.append(0)
+    consult = []
+    for i in range(times):
+        if info[i] == 1:
+            consult.append(1)
+            for j in range(n):
+                info[j + i] = info[j + i] ^ p[j]
+        else:
+            consult.append(0)
+    mod = info[-8::]
+    # print(mod)
+    code = info1.copy()
+    # print(code)
+    for i in mod:
+        code.append(i)
+    code = "".join('%s' % id for id in code)
+    # print(code)
+    return code
 
 
 def check_CRC8(string):
-    crc8 = '100000111'  # C(x) = 100000111
-    decCrc8 = int(crc8, 2)
-    mod = int(string, 2) % decCrc8
+    loc = [8, 2, 1, 0]
+    p = [0 for i in range(9)]
+    for i in loc:
+        p[i] = 1
+    info = list(string)
+    info = [int(i) for i in info]
+    times = len(info)
+    n = 9
+    consult = []
+    for i in range(times - 8):
+        if info[i] == 1:
+            consult.append(1)
+            for j in range(n):
+                info[j + i] = info[j + i] ^ p[j]
+        else:
+            consult.append(0)
+    mod = info[-8::]
+    # print(mod)
+    mod = int("".join('%s' % id for id in mod))
     if mod == 0:
         return True
     else:
