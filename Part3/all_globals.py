@@ -5,6 +5,7 @@ from constant import *
 
 
 
+
 node_state = ""
 RxFrame = []
 TxFrame = []

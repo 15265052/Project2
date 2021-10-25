@@ -65,7 +65,6 @@ def clean_file(file_name):
     with open(file_name, 'w') as f:
         f.truncate()
 
-
 def str_to_byte(str_buffer):
     temp = int(str_buffer, 2)
     return temp.to_bytes(1, 'big')
@@ -77,52 +76,22 @@ def byte_to_str(byte):
     return (8 - len(bi)) * "0" + bi
 
 
-def gen_CRC8(string):
-    crc8 = '100000111'  # C(x) = 100000111
-    decCrc8 = int(crc8, 2)
-    newString = string + '00000000'
-    decString = int(newString, 2)
-    decMod = decString % decCrc8
-    newDecString = decString - decMod
-    newBinString = bin(newDecString)
-    return newBinString[2:]
-
-
-def check_CRC8(string):
-    crc8 = '100000111'  # C(x) = 100000111
-    decCrc8 = int(crc8, 2)
-    mod = int(string, 2) % decCrc8
-    if mod == 0:
-        return True
-    else:
-        return False
-
-
 sample_rate = 48000
 
 signal0 = (np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).astype(np.float32)
 signal1 = (-np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).astype(np.float32)
-
 latency = 0.0015
 block_size = 1024
 threshold = 10
-
 asio_id = 10
 asio_in = sd.AsioSettings(channel_selectors=[0])
 asio_out = sd.AsioSettings(channel_selectors=[1])
-
 preamble = gen_preamble()
 RTX = gen_RTX()
 CTX = gen_CTX()
-
 preamble_length = len(preamble)
 bins_per_byte = 8
 samples_per_bin = 6
 frame_num = 250
 bytes_per_frame = 25
 frame_length = samples_per_bin * bins_per_byte * bytes_per_frame + preamble_length
-frame_length_with_CRC = frame_length + 8
-frame_length_in_bit = bins_per_byte * bytes_per_frame
-frame_length_in_bit_with_CRC = frame_length_in_bit + 8
-
-retransmit_time = 0.04
