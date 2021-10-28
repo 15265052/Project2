@@ -2,7 +2,7 @@
 
 from MAC import *
 
-Node1 = MAC("Receiver")
+Node1 = MAC("Transmitter")
 Node1_Tx = Tx()
 Node1_Rx = Rx()
 

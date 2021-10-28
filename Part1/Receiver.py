@@ -133,6 +133,6 @@ def dump_frames(frames):
 
 global_buffer = np.array([])
 global_pointer = 0
-global_status = ""
+global_status = "sending CTX"
 de = False
 receive()

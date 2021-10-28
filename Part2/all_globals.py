@@ -15,6 +15,8 @@ global_input_index = 0
 state_lock = threading.Lock()
 RxFrame_lock = threading.Lock()
 detected_frames = 0
+send_time = [0]*frame_num
+ACK_confirmed = [False]*frame_num
 # for thread synchronization
 MAC_condition = threading.Condition()
 Rx_condition = threading.Condition()

@@ -2,7 +2,7 @@ import sounddevice as sd
 import soundfile as sf
 
 data, sample_rate = sf.read("test100.wav")
-asio_id = 12
+asio_id = 16
 
 asio_in = sd.AsioSettings(channel_selectors=[0])
 asio_out = sd.AsioSettings(channel_selectors=[1])

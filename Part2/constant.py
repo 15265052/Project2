@@ -1,3 +1,5 @@
+import time
+
 import matplotlib.pyplot as plt
 import numpy as np
 import sounddevice as sd
@@ -141,11 +143,11 @@ sample_rate = 48000
 signal0 = (np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).astype(np.float32)
 signal1 = (-np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).astype(np.float32)
 
-latency = 0.0015
-block_size = 1024
-threshold = 10
+latency = 0.002
+block_size = 2048
+threshold = 5
 
-asio_id = 10
+asio_id = 8
 asio_in = sd.AsioSettings(channel_selectors=[0])
 asio_out = sd.AsioSettings(channel_selectors=[1])
 
@@ -158,9 +160,10 @@ bins_per_byte = 8
 samples_per_bin = 6
 frame_num = 250
 bytes_per_frame = 25
-frame_length = samples_per_bin * bins_per_byte * bytes_per_frame + preamble_length
-frame_length_with_CRC = frame_length + 8
-frame_length_in_bit = bins_per_byte * bytes_per_frame
+frame_length = samples_per_bin * bins_per_byte * bytes_per_frame + preamble_length + 8 * samples_per_bin
+frame_length_with_CRC = frame_length + 8 * samples_per_bin
+frame_length_in_bit = bins_per_byte * (bytes_per_frame + 1)
 frame_length_in_bit_with_CRC = frame_length_in_bit + 8
 
-retransmit_time = 0.04
+retransmit_time = 1
+max_retransmit = 10
