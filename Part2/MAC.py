@@ -22,7 +22,6 @@ class MAC(threading.Thread):
         global detected_frames
         TxFrame = []
         global_input_index = 0
-        retransmit = 0
         pointer = global_pointer
         if self.node_name == "Transmitter":
             # Transmitter to send data first
