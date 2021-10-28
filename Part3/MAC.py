@@ -30,12 +30,11 @@ class MAC(threading.Thread):
         print("Frame Detecting")
         if self.node_name == "Transmitter":
             # Transmitter to send data first
-            s = time.time()
             data = self.gen_data("INPUT.bin")
             self.put_data_into_TxBuffer(data)
             self.switch_state("Tx")
             self.switch_to_Tx()
-            print("Time: ", time.time()-s)
+
         # Tx Done to clear Tx Frame and set input index to 0
         global TxFrame
         global global_input_index
@@ -217,7 +216,7 @@ def set_stream():
     sd.default.extra_settings = asio_in, asio_out
     sd.default.device[0] = asio_id
     sd.default.device[1] = asio_id
-    stream = sd.Stream(sample_rate, blocksize=block_size, dtype=np.float32, callback=callback, channels=1)
+    stream = sd.Stream(sample_rate, blocksize=block_size, dtype=np.float32, callback=callback)
     return stream
 
 

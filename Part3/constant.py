@@ -83,7 +83,7 @@ signal1 = (-np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).
 latency = 0.002
 block_size = 1024
 threshold = 10
-asio_id = 8
+asio_id =12
 asio_in = sd.AsioSettings(channel_selectors=[0])
 asio_out = sd.AsioSettings(channel_selectors=[1])
 preamble = gen_preamble()
