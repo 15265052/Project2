@@ -1,8 +1,4 @@
 import struct
-import threading
-import time
-
-import matplotlib.pyplot as plt
 
 from all_globals import *
 from constant import *
@@ -15,55 +11,67 @@ class MAC(threading.Thread):
         super().__init__()
         self.node_name = node_name
 
-    def switch_state(self, dest_state):
-        global node_state
-        global state_lock
-        print("MAC: switching from ", node_state, "to", dest_state)
-        state_lock.acquire()
-        node_state = dest_state
-        state_lock.release()
-
     def run(self):
         global global_pointer
         global stream
+        global frame_rece
+        global TxFrame
+        global retransmit_time
+
+        global global_input_index
+        global detected_frames
+        TxFrame = []
+        global_input_index = 0
         pointer = global_pointer
-        print("Frame Detecting")
         if self.node_name == "Transmitter":
             # Transmitter to send data first
+            # generating all data with CRC but a frame with CRC per send
             data = self.gen_data("INPUT.bin")
-            self.put_data_into_TxBuffer(data)
-            self.switch_state("Tx")
-            self.switch_to_Tx()
-
+            i = 0
+            start = time.time()
+            while i < frame_num:
+                frame_with_CRC = data[i * frame_length_with_CRC: (i + 1) * frame_length_with_CRC]
+                self.put_data_into_TxBuffer(frame_with_CRC)
+                self.switch_to_Tx()
+                TxFrame = []
+                i += 1
+                if i % 49 and i >= 49:
+                    self.check_ACK(0, i, data)
+            while not self.check_ACK(0, frame_num, data):
+                pass
+            print("Transmission finished! time used: ", time.time() - start)
         # Tx Done to clear Tx Frame and set input index to 0
         global TxFrame
         global global_input_index
-        global  detected_frames
+        global detected_frames
         TxFrame = []
+        flag = True
+        start = 0
         global_input_index = 0
-
-        while True:
+        while detected_frames < frame_num:
             if pointer + block_size > len(global_buffer):
                 continue
-            if detected_frames >= frame_num:
-                break
-            block_buffer = global_buffer[pointer:pointer + block_size]
+            block_buffer = global_buffer[pointer: pointer + block_size]
             pointer_frame = detect_preamble(block_buffer)
             if not pointer_frame == "error":
-                detected_frames += 1
-                print(detected_frames)
+                if flag:
+                    start = time.perf_counter()
+                    flag = False
                 pointer += pointer_frame
-                if pointer + frame_length - preamble_length > len(global_buffer):
-                    time.sleep(0.2)
-                frame_detected = global_buffer[pointer: pointer + frame_length - preamble_length]
-                self.put_frame_into_RxBuffer(frame_detected)
-                self.switch_state("Rx")
+                # detect a frame, first to check its correctness
+                if pointer + frame_length_with_CRC - preamble_length > len(global_buffer):
+                    time.sleep(0.1)
+                frame_with_CRC_detected = global_buffer[pointer: pointer + frame_length_with_CRC - preamble_length]
+                self.put_frame_into_RxBuffer(frame_with_CRC_detected)
                 self.switch_to_Rx()
                 pointer += frame_length - preamble_length
                 continue
             pointer += block_size
+        end = time.perf_counter()
         global_pointer += pointer
-        stream.stop()
+        print("receive finished! time used: ", end - start)
+        for frame in frame_rece:
+            write_byte_to_file("OUTPUT.bin", frame)
 
     def put_data_into_TxBuffer(self, data):
         global TxFrame
@@ -94,6 +102,19 @@ class MAC(threading.Thread):
         MAC_condition.acquire()
         MAC_condition.wait()
 
+    def decode_ACK(self, ACK_buffer):
+        # first to convert all samples to bits
+        str_decoded = ""
+        pointer = 0
+        for i in range(8):
+            decode_buffer = ACK_buffer[pointer: pointer + samples_per_bin]
+            if np.sum(decode_buffer * signal0) > 0:
+                str_decoded += '0'
+            else:
+                str_decoded += '1'
+            pointer += samples_per_bin
+        return str_decoded
+
     """ generate data to send"""
 
     def gen_data(self, file_name):
@@ -101,19 +122,61 @@ class MAC(threading.Thread):
             file_data = file.read()
         file_data = struct.unpack("c" * len(file_data), file_data)
         input_index = 0
-        bytes_in_frame = 25
         data = []
         for i in range(frame_num):
-            data.append(np.zeros(240))
             data.append(preamble)
-            for j in range(bytes_in_frame):
-                for m in byte_to_str(file_data[input_index]):
-                    if m == '0':
-                        data.append(signal0)
-                    else:
-                        data.append(signal1)
+            bytes_str_buffer = ""
+            temp_str = bin(i)[2:]
+            temp_str = (8 - len(temp_str)) * '0' + temp_str
+            bytes_str_buffer += temp_str
+            for j in range(bytes_per_frame):
+                bytes_str_buffer += byte_to_str(file_data[input_index])
                 input_index += 1
+            for m in gen_CRC8(bytes_str_buffer):
+                if m == '0':
+                    data.append(signal0)
+                else:
+                    data.append(signal1)
         return np.concatenate(data)
+
+    def check_ACK(self, range1, range2, data):
+        """
+        check if ACK received from range1 to range2
+        retransmit frame if time out
+        """
+        global global_buffer
+        global TxFrame
+        global global_pointer
+        while global_pointer < len(global_buffer):
+            pointer_ACK = detect_preamble(global_buffer[global_pointer:global_pointer + 1024])
+            if not pointer_ACK == 'error':
+                global_pointer += pointer_ACK
+                ACK_frame = int(self.decode_ACK(global_buffer[global_pointer:global_pointer + 48]), 2)
+                if not ACK_confirmed[ACK_frame]:
+                    print("ACK ", ACK_frame, " received!")
+                    ACK_confirmed[ACK_frame] = True
+                global_pointer += 48
+            global_pointer += 1024
+        global_pointer = len(global_buffer) >> 2
+        res = True
+        for i in range(range1, range2):
+            if not ACK_confirmed[i]:
+                res = False
+                if time.time() - send_time[i] > retransmit_time and send_time[i] != 0:
+                    frame_retransmit[i] += 1
+                    if frame_retransmit >= max_retransmit:
+                        print("link error! exit")
+                        exit(-1)
+                    else:
+                        print("ACK ", i, " time out, time used: ", time.time() - send_time[i], ", retransmit")
+                        # retransmit
+                        frame_with_CRC_re = data[i * frame_length_with_CRC: (i + 1) * frame_length_with_CRC]
+                        TxFrame = []
+                        self.put_data_into_TxBuffer(frame_with_CRC_re)
+                        self.switch_to_Tx()
+                        TxFrame = []
+                        res = False
+        return res
 
 
 class Rx(threading.Thread):
@@ -123,46 +186,58 @@ class Rx(threading.Thread):
     def run(self):
         """ receive data and write to file"""
         global Rx_condition
+        global detected_frames
+        global RxFrame
+        global frame_confirmed
+        global frame_rece
         Rx_condition.acquire()
         Rx_condition.wait()
         while True:
-            global RxFrame
-            self.decode(RxFrame)
+            decoded_bits = self.decode_to_bits(RxFrame)
+            if check_CRC8(decoded_bits):
+                # frame is right
+                n_frame = int(decoded_bits[:8], 2)
+                self.send_ACK(n_frame)
+                if not frame_confirmed[n_frame]:
+                    frame_confirmed[n_frame] = True
+                    frame_rece[n_frame] = decoded_bits[8:]
+                    detected_frames += 1
+            else:
+                print("CRC broken!")
+            # wait until ACK was sent
+            while global_status != "":
+                pass
             RxFrame = []
-            print("received one packet...")
-            self.switch_state("MAC")
             self.switch_to_MAC()
 
-    def switch_state(self, dest_state):
-        global node_state
-        global state_lock
-        print("Rx: switching from ", node_state, "to", dest_state)
-        state_lock.acquire()
-        node_state = dest_state
-        state_lock.release()
+    @staticmethod
+    def send_ACK(n_frame):
+        global global_status
+        global ACK_buffer
+        global ACK_predefined
+        ACK_buffer.append(ACK_predefined[n_frame])
+        global_status = "sending ACK"
 
-    def decode(self, frame_buffer):
+    def decode_to_bits(self, frame_buffer):
+        # first to convert all samples to bits
         str_decoded = ""
-        pointer = 0
-        for i in range(bytes_per_frame):
-            for j in range(bins_per_byte):
-                decode_buffer = frame_buffer[pointer: pointer + samples_per_bin]
-                str_decoded += self.decode_one_bit(decode_buffer)
-                pointer += samples_per_bin
-            write_to_file("OUTPUT.bin", str_to_byte(str_decoded))
-            str_decoded = ""
+        for i in range(frame_length_in_bit_with_CRC):
+            decode_buffer = frame_buffer[i * samples_per_bin: (i + 1) * samples_per_bin]
+            str_decoded += self.decode_one_bit(decode_buffer)
+        return str_decoded
 
-    def decode_one_bit(self, s_buffer):
+    @staticmethod
+    def decode_one_bit(s_buffer):
         sum = np.sum(s_buffer * signal0)
         if sum >= 0:
             return '0'
         else:
             return '1'
 
-    def switch_to_MAC(self):
+    @staticmethod
+    def switch_to_MAC():
         global MAC_condition
         global Rx_condition
-        print("Frame Detecting")
         MAC_condition.acquire()
         MAC_condition.notify()
         MAC_condition.release()
@@ -185,26 +260,17 @@ class Tx(threading.Thread):
             global global_input_index
 
             # transmitting
-            print("Tx: transmitting data")
             while global_input_index < len(TxFrame):
                 global_status = "sending data"
             global_status = ""
+            global_input_index = 0
             print("transmit done...")
-            self.switch_state("MAC")
             self.switch_to_MAC()
 
-    def switch_state(self, dest_state):
-        global node_state
-        global state_lock
-        print("Tx: switching from ", node_state, "to", dest_state)
-        state_lock.acquire()
-        node_state = dest_state
-        state_lock.release()
-
-    def switch_to_MAC(self):
+    @staticmethod
+    def switch_to_MAC():
         global MAC_condition
         global Tx_condition
-        print("Frame Detecting")
         MAC_condition.acquire()
         MAC_condition.notify()
         MAC_condition.release()
@@ -216,7 +282,8 @@ def set_stream():
     sd.default.extra_settings = asio_in, asio_out
     sd.default.device[0] = asio_id
     sd.default.device[1] = asio_id
-    stream = sd.Stream(sample_rate, blocksize=block_size, dtype=np.float32, callback=callback)
+    sd.default.latency = latency
+    stream = sd.Stream(sample_rate, blocksize=block_size, dtype=np.float32, callback=callback, channels=1)
     return stream
 
 
@@ -224,7 +291,7 @@ def callback(indata, outdata, frames, time, status):
     global global_buffer
     global global_pointer
     global global_status
-    global_buffer = np.append(global_buffer, indata[:,0])
+    global_buffer = np.append(global_buffer, indata[:, 0])
 
     if global_status == "":
         outdata.fill(0)
@@ -232,14 +299,18 @@ def callback(indata, outdata, frames, time, status):
     if global_status == "sending data":
         global global_input_index
         global TxFrame
-        if len(TxFrame) - global_input_index > block_size:
-            outdata[:] = np.array(TxFrame[global_input_index:global_input_index + block_size]).reshape(block_size, 1)
+        if len(TxFrame) - global_input_index > frames:
+            outdata[:] = np.array(TxFrame[global_input_index:global_input_index + frames]).reshape(frames, 1)
         else:
             if len(TxFrame) - global_input_index >= 0:
                 outdata[:] = np.append(TxFrame[global_input_index:],
-                                       np.zeros(block_size - len(TxFrame) + global_input_index)).reshape(block_size, 1)
-        global_input_index += block_size
+                                       np.zeros(frames - len(TxFrame) + global_input_index)).reshape(frames, 1)
+        global_input_index += frames
 
-
-stream = set_stream()
-stream.start()
+    if global_status == "sending ACK":
+        global ACK_buffer
+        global ACK_pointer
+        global_status = ""
+        outdata[:] = np.append(ACK_buffer[ACK_pointer], np.zeros(frames - len(ACK_buffer[ACK_pointer]))).reshape(frames,
+                                                                                                                 1)
+        ACK_pointer += 1

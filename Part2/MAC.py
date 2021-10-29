@@ -35,8 +35,7 @@ class MAC(threading.Thread):
                 self.switch_to_Tx()
                 TxFrame = []
                 i += 1
-                if i % 49 and i >= 49:
-                    self.check_ACK(0, i, data)
+                self.check_ACK(0, i, data)
             while not self.check_ACK(0, frame_num, data):
                 pass
             print("Transmission finished! time used: ", time.time() - start)
@@ -163,14 +162,19 @@ class MAC(threading.Thread):
             if not ACK_confirmed[i]:
                 res = False
                 if time.time() - send_time[i] > retransmit_time and send_time[i] != 0:
-                    print("ACK ", i, " time out, time used: ", time.time() - send_time[i], ", retransmit")
-                    # retransmit
-                    frame_with_CRC_re = data[i * frame_length_with_CRC: (i + 1) * frame_length_with_CRC]
-                    TxFrame = []
-                    self.put_data_into_TxBuffer(frame_with_CRC_re)
-                    self.switch_to_Tx()
-                    TxFrame = []
-                    res = False
+                    frame_retransmit[i] += 1
+                    if frame_retransmit >= max_retransmit:
+                        print("link error! exit")
+                        exit(-1)
+                    else:
+                        print("ACK ", i, " time out, time used: ", time.time() - send_time[i], ", retransmit")
+                        # retransmit
+                        frame_with_CRC_re = data[i * frame_length_with_CRC: (i + 1) * frame_length_with_CRC]
+                        TxFrame = []
+                        self.put_data_into_TxBuffer(frame_with_CRC_re)
+                        self.switch_to_Tx()
+                        TxFrame = []
+                        res = False
         return res
 
 
