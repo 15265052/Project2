@@ -1,5 +1,5 @@
 length_str=6250
-fin=open("INPUT.bin", "rb")
+fin=open("../INPUT.bin", "rb")
 fout=open("OUTPUT.bin", "rb")
 count=0
 for i in range(length_str):

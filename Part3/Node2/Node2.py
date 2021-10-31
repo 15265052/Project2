@@ -1,8 +1,8 @@
-"""node1: Transmitter"""
+"""Node2"""
 
 from MAC import *
 
-Node1 = MAC("Transmitter")
+Node1 = MAC("Node2")
 Node1_Tx = Tx()
 Node1_Rx = Rx()
 

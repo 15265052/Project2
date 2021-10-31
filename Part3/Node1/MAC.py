@@ -1,7 +1,12 @@
 import struct
 
-from all_globals import *
-from constant import *
+import numpy as np
+
+from ..all_globals import *
+from ..config.globalConfig import *
+from ..config.node1 import *
+from ..frame.PHYFrame import *
+from ..config.Type import *
 
 
 class MAC(threading.Thread):
@@ -17,30 +22,31 @@ class MAC(threading.Thread):
         global frame_rece
         global TxFrame
         global retransmit_time
-
         global global_input_index
         global detected_frames
+        global is_noisy
         TxFrame = []
         global_input_index = 0
         pointer = global_pointer
-        if self.node_name == "Transmitter":
-            # Transmitter to send data first
-            # generating all data with CRC but a frame with CRC per send
-            data = self.gen_data("INPUT.bin")
-            i = 0
-            start = time.time()
-            while i < frame_num:
-                frame_with_CRC = data[i * frame_length_with_CRC: (i + 1) * frame_length_with_CRC]
-                self.put_data_into_TxBuffer(frame_with_CRC)
-                self.switch_to_Tx()
-                TxFrame = []
-                i += 1
-                if i % 49 and i >= 49:
-                    self.check_ACK(0, i, data)
-            while not self.check_ACK(0, frame_num, data):
-                pass
-            print("Transmission finished! time used: ", time.time() - start)
+        # Node1 Transmits first
+        data = self.gen_data(INPUT_FILE)
+        i = 0
+        start = time.time()
+        for frame in data:
+            while is_noisy:
+                # if the channel is noisy, backoff 0.05s
+                time.sleep(0.05)
+            self.put_data_into_TxBuffer(frame.get_modulated_frame())
+            self.switch_to_Tx()
+            TxFrame = []
+            i += 1
+            if i % 49 and i >= 49:
+                self.check_ACK(0, i, data)
+        while not self.check_ACK(0, frame_num, data):
+            pass
+        print("Node1 transmission finished! time used: ", time.time() - start)
         # Tx Done to clear Tx frame and set input index to 0
+        # Then Node1 to Receive
         global TxFrame
         global global_input_index
         global detected_frames
@@ -69,9 +75,9 @@ class MAC(threading.Thread):
             pointer += block_size
         end = time.perf_counter()
         global_pointer += pointer
-        print("receive finished! time used: ", end - start)
+        print("Node1 receive finished! time used: ", end - start)
         for frame in frame_rece:
-            write_byte_to_file("OUTPUT.bin", frame)
+            write_byte_to_file(OUTPUT_FILE, frame)
 
     def put_data_into_TxBuffer(self, data):
         global TxFrame
@@ -102,11 +108,11 @@ class MAC(threading.Thread):
         MAC_condition.acquire()
         MAC_condition.wait()
 
-    def decode_ACK(self, ACK_buffer):
+    def decode_ACK_bits(self, ACK_buffer):
         # first to convert all samples to bits
         str_decoded = ""
         pointer = 0
-        for i in range(8):
+        for i in range(ACK_length_in_bit):
             decode_buffer = ACK_buffer[pointer: pointer + samples_per_bin]
             if np.sum(decode_buffer * signal0) > 0:
                 str_decoded += '0'
@@ -118,26 +124,24 @@ class MAC(threading.Thread):
     """ generate data to send"""
 
     def gen_data(self, file_name):
+        """
+        generate all data to be send, where data is an array containing all of the frames
+        like: data = [frame1, frame2,....], the frames are all  PHYFrame Object
+        """
         with open(file_name, 'rb') as file:
             file_data = file.read()
         file_data = struct.unpack("c" * len(file_data), file_data)
         input_index = 0
         data = []
         for i in range(frame_num):
-            data.append(preamble)
-            bytes_str_buffer = ""
-            temp_str = bin(i)[2:]
-            temp_str = (8 - len(temp_str)) * '0' + temp_str
-            bytes_str_buffer += temp_str
+            load_bit = ""
             for j in range(bytes_per_frame):
-                bytes_str_buffer += byte_to_str(file_data[input_index])
-                input_index += 1
-            for m in gen_CRC8(bytes_str_buffer):
-                if m == '0':
-                    data.append(signal0)
-                else:
-                    data.append(signal1)
-        return np.concatenate(data)
+                load_bit += byte_to_str(file_data[input_index])
+            phy_frame = PhyFrame()
+            phy_frame.set_num(i)
+            phy_frame.set_load(node2_addr, node1_addr, data_frame, load_bit)
+            data.append(phy_frame)
+        return data
 
     def check_ACK(self, range1, range2, data):
         """
@@ -151,10 +155,15 @@ class MAC(threading.Thread):
             pointer_ACK = detect_preamble(global_buffer[global_pointer:global_pointer + 1024])
             if not pointer_ACK == 'error':
                 global_pointer += pointer_ACK
-                ACK_frame = int(self.decode_ACK(global_buffer[global_pointer:global_pointer + 48]), 2)
-                if not ACK_confirmed[ACK_frame]:
-                    print("ACK ", ACK_frame, " received!")
-                    ACK_confirmed[ACK_frame] = True
+                ACK_frame_array = global_buffer[global_pointer: global_pointer + ACK_length]
+                ACK_frame = PhyFrame()
+                ACK_frame.from_array(self.decode_ACK_bits(ACK_frame_array))
+                if ACK_frame.check() and ACK_frame.get_destination() == node1_addr:
+                    if not ACK_confirmed[ACK_frame.get_decimal_num()]:
+                        print("ACK ", ACK_frame, " received!")
+                        ACK_confirmed[ACK_frame.get_decimal_num()] = True
+                else:
+                    print("ACK CRC broken!")
                 global_pointer += 48
             global_pointer += 1024
         global_pointer = len(global_buffer) >> 2
@@ -189,14 +198,14 @@ class Rx(threading.Thread):
         Rx_condition.wait()
         while True:
             decoded_bits = self.decode_to_bits(RxFrame)
-            if check_CRC8(decoded_bits):
-                # frame is right
-                n_frame = int(decoded_bits[:8], 2)
+            physical_frame = PhyFrame()
+            physical_frame.from_array(decoded_bits)
+            if physical_frame.check() and physical_frame.get_destination() == node1_addr and physical_frame.get_type() == data_frame:
+                # correct frame
+                n_frame = physical_frame.get_decimal_num()
+                print("send ACK ", n_frame)
                 self.send_ACK(n_frame)
-                if not frame_confirmed[n_frame]:
-                    frame_confirmed[n_frame] = True
-                    frame_rece[n_frame] = decoded_bits[8:]
-                    detected_frames += 1
+                frame_rece[n_frame] = physical_frame.get_load().get_data()
             else:
                 print("CRC broken!")
             # wait until ACK was sent
@@ -210,7 +219,10 @@ class Rx(threading.Thread):
         global global_status
         global ACK_buffer
         global ACK_predefined
+        global is_noisy
         ACK_buffer.append(ACK_predefined[n_frame])
+        while is_noisy:
+            time.sleep(0.05)
         global_status = "sending ACK"
 
     def decode_to_bits(self, frame_buffer):
@@ -286,7 +298,14 @@ def callback(indata, outdata, frames, time, status):
     global global_buffer
     global global_pointer
     global global_status
+    global is_noisy
+    global silent_threshold
     global_buffer = np.append(global_buffer, indata[:, 0])
+
+    if np.average(indata[:, 0]) > silent_threshold:
+        is_noisy = True
+    else:
+        is_noisy = False
 
     if global_status == "":
         outdata.fill(0)
