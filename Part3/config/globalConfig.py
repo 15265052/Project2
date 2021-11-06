@@ -58,6 +58,64 @@ def write_byte_to_file(file_name, decoded_bits):
         write_to_file(file_name, byte)
 
 
+def gen_CRC8(string):
+    loc = [8, 2, 1, 0]
+    p = [0 for i in range(9)]
+    for i in loc:
+        p[i] = 1
+    info = list(string)
+    info = [int(i) for i in info]
+    info1 = list(string)
+    info1 = [int(i) for i in info1]
+    # print(info)
+    times = len(info)
+    n = 9
+    for i in range(8):
+        info.append(0)
+    consult = []
+    for i in range(times):
+        if info[i] == 1:
+            consult.append(1)
+            for j in range(n):
+                info[j + i] = info[j + i] ^ p[j]
+        else:
+            consult.append(0)
+    mod = info[-8::]
+    # print(mod)
+    code = info1.copy()
+    # print(code)
+    for i in mod:
+        code.append(i)
+    code = "".join('%s' % id for id in code)
+    # print(code)
+    return code
+
+
+def check_CRC8(string):
+    loc = [8, 2, 1, 0]
+    p = [0 for i in range(9)]
+    for i in loc:
+        p[i] = 1
+    info = list(string)
+    info = [int(i) for i in info]
+    times = len(info)
+    n = 9
+    consult = []
+    for i in range(times - 8):
+        if info[i] == 1:
+            consult.append(1)
+            for j in range(n):
+                info[j + i] = info[j + i] ^ p[j]
+        else:
+            consult.append(0)
+    mod = info[-8::]
+    # print(mod)
+    mod = int("".join('%s' % id for id in mod))
+    if mod == 0:
+        return True
+    else:
+        return False
+
 
 def modulate_string(string):
     modulated_array = []
@@ -82,7 +140,6 @@ def single_ACK(num):
     ACK_frame.set_num(num)
     ACK_frame.set_load(node2_addr, node1_addr, ACK, "")
     return ACK_frame.get_modulated_frame()
-
 
 sample_rate = 48000
 
