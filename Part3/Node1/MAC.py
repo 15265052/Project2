@@ -2,12 +2,9 @@ import struct
 
 import numpy as np
 
-from ..all_globals import *
-from ..config.globalConfig import *
-from ..config.node1 import *
-from ..frame.PHYFrame import *
-from ..config.Type import *
-
+from Part3.all_globals import *
+from Part3.config.node1 import *
+from Part3.config.ACKConfig import *
 
 class MAC(threading.Thread):
     """This class used to detect frame and switch state"""

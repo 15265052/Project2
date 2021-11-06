@@ -9,8 +9,9 @@ PHY load here is MAC Frame, which is defined in MACFrame.py
 Author: du xiao yuan
 Modified At: 2021/10/30
 """
-from Part3.mixin import *
 from Part3.frame.MACFrame import *
+from Part3.config.globalConfig import *
+
 
 class PhyFrame:
     """

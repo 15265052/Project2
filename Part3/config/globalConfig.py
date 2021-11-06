@@ -4,8 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sounddevice as sd
 from scipy import signal, integrate
-from ..frame.PHYFrame import *
-from ..config.Type import *
 
 
 def gen_preamble():
@@ -127,20 +125,6 @@ def modulate_string(string):
     return modulated_array
 
 
-def predefine_ACK():
-    ACK_pre = []
-    for i in range(frame_num):
-        ACK_pre.append(single_ACK(i))
-    return ACK_pre
-
-
-def single_ACK(num):
-    """generate a single ACK frame"""
-    ACK_frame = PhyFrame()
-    ACK_frame.set_num(num)
-    ACK_frame.set_load(node2_addr, node1_addr, ACK, "")
-    return ACK_frame.get_modulated_frame()
-
 sample_rate = 48000
 
 signal0 = (np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).astype(np.float32)
@@ -165,11 +149,9 @@ frame_length_in_bit_with_CRC = frame_length_in_bit + 8
 node1_addr = "10010011"
 node2_addr = "01101100"
 
-ACK_buffer = []
-ACK_predefined = predefine_ACK()
 # 8: frame num bits 8: dest bits 8: src bits 4: type bits 8: CRC bits
 ACK_length_in_bit = 8 + 8 + 8 + 4 + 8
-ACK_length = samples_per_bin * (ACK_length_in_bit)
+ACK_length = samples_per_bin * ACK_length_in_bit
 
 retransmit_time = 1
 max_retransmit = 10
