@@ -1,4 +1,5 @@
 import struct
+import time
 
 import numpy as np
 
@@ -36,6 +37,7 @@ class MAC(threading.Thread):
                 time.sleep(0.05)
             self.put_data_into_TxBuffer(frame.get_modulated_frame())
             self.switch_to_Tx()
+            send_time[i] = time.time()
             TxFrame = []
             i += 1
             if i % 49 and i >= 49:
@@ -169,9 +171,9 @@ class MAC(threading.Thread):
                 if time.time() - send_time[i] > retransmit_time and send_time[i] != 0:
                     print("ACK ", i, " time out, time used: ", time.time() - send_time[i], ", retransmit")
                     # retransmit
-                    frame_with_CRC_re = data[i * frame_length_with_CRC: (i + 1) * frame_length_with_CRC]
+                    frame_with_CRC_re = data[i]
                     TxFrame = []
-                    self.put_data_into_TxBuffer(frame_with_CRC_re)
+                    self.put_data_into_TxBuffer(frame_with_CRC_re.get_modulated_frame())
                     self.switch_to_Tx()
                     TxFrame = []
                     res = False

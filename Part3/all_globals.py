@@ -27,3 +27,5 @@ RxFrame_lock = threading.Lock()
 # detect if the channel is noisy
 is_noisy = False
 silent_threshold = 0.05
+ACK_pointer = 0
+

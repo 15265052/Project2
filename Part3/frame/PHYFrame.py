@@ -88,7 +88,7 @@ class PhyFrame:
         self.phy_load.set_source(src)
         self.phy_load.set_type(type)
         self.phy_load.set_load(MAC_load)
-        self.CRC = gen_CRC8(self.num+self.phy_load.get())
+        self.CRC = gen_CRC8(self.num+self.phy_load.get())[-8:]
 
     def check(self):
         """
