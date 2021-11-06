@@ -14,6 +14,8 @@ def modulate_string(string):
             modulated_array.append(signal0)
         else:
             modulated_array.append(signal1)
+    if len(modulated_array) != 0:
+        modulated_array = np.concatenate(modulated_array)
     return modulated_array
 
 
@@ -55,7 +57,7 @@ class MACFrame:
         if not len(src) == 8:
             print("source must be 8 bits long string!")
             return
-        self.destination = src
+        self.source = src
 
     def set_type(self, type):
         """:param type: indicate what type the frame is"""

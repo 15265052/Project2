@@ -11,6 +11,7 @@ def predefine_ACK():
 def single_ACK(num):
     """generate a single ACK frame"""
     ACK_frame = PhyFrame()
+    ACK = "1010"
     ACK_frame.set_num(num)
     ACK_frame.set_load(node2_addr, node1_addr, ACK, "")
     return ACK_frame.get_modulated_frame()
@@ -18,4 +19,3 @@ def single_ACK(num):
 
 ACK_buffer = []
 ACK_predefined = predefine_ACK()
-ACK = "1010"

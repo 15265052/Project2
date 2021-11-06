@@ -68,7 +68,7 @@ class PhyFrame:
     def set_num(self, num):
         temp_str = bin(num)[2:]
         temp_str = (8 - len(temp_str)) * '0' + temp_str
-        return temp_str
+        self.num = temp_str
 
     def set_destination(self, destination):
         """set the destination of frame"""

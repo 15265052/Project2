@@ -122,6 +122,8 @@ def modulate_string(string):
             modulated_array.append(signal0)
         else:
             modulated_array.append(signal1)
+    if len(modulated_array) != 0:
+        modulated_array = np.concatenate(modulated_array)
     return modulated_array
 
 
