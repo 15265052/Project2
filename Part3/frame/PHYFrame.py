@@ -42,7 +42,7 @@ class PhyFrame:
 
     def get_modulated_frame(self):
         """ Add preamble to the head, get whole modulated frame"""
-        phy_frame = np.concatenate([preamble, modulate_string(self.num), self.phy_load.modulate(), modulate_string(self.CRC)])
+        phy_frame = np.concatenate([preamble, modulate_string(self.num), self.phy_load.modulate(), modulate_string(self.CRC)],dtype=object)
         return phy_frame
 
     def get_load(self):

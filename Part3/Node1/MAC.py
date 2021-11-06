@@ -3,6 +3,7 @@ import struct
 import numpy as np
 
 from Part3.all_globals import *
+from Part3.config.Type import data_frame
 from Part3.config.node1 import *
 from Part3.config.ACKConfig import *
 
@@ -260,6 +261,7 @@ class Tx(threading.Thread):
             global TxFrame
             global global_input_index
 
+            global_input_index = 0
             # transmitting
             while global_input_index < len(TxFrame):
                 global_status = "sending data"

@@ -1,11 +1,11 @@
 """This file defines the MAC frame structure and supplies some functions to implement the frame"""
 import numpy as np
 
-
 MAC_load_limit = 200  # in bits length
 sample_rate = 48000
 signal0 = (np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).astype(np.float32)
 signal1 = (-np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).astype(np.float32)
+
 
 def modulate_string(string):
     modulated_array = []
@@ -80,5 +80,5 @@ class MACFrame:
 
     def modulate(self):
         """modulate the whole frame into signals"""
-        return [modulate_string(self.destination), modulate_string(self.source),
-                modulate_string(self.type), modulate_string(self.load)]
+        return np.concatenate([modulate_string(self.destination), modulate_string(self.source),
+                               modulate_string(self.type), modulate_string(self.load)])
