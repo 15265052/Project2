@@ -44,9 +44,6 @@ class MAC(threading.Thread):
         print("Node1 transmission finished! time used: ", time.time() - start)
         # Tx Done to clear Tx frame and set input index to 0
         # Then Node1 to Receive
-        global TxFrame
-        global global_input_index
-        global detected_frames
         TxFrame = []
         flag = True
         start = 0
