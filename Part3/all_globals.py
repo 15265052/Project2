@@ -1,5 +1,5 @@
 import threading
-from config.globalConfig import *
+from Part3.config.globalConfig import *
 RxFrame = []  # frame for Rx to deal with
 TxFrame = []  # frame for Tx to send
 

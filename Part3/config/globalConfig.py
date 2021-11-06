@@ -8,21 +8,6 @@ from ..frame.PHYFrame import *
 from ..config.Type import *
 
 
-def predefine_ACK():
-    ACK_pre = []
-    for i in range(frame_num):
-        ACK_pre.append(single_ACK(i))
-    return ACK_pre
-
-
-def single_ACK(num):
-    """generate a single ACK frame"""
-    ACK_frame = PhyFrame()
-    ACK_frame.set_num(num)
-    ACK_frame.set_load(node2_addr, node1_addr, ACK, "")
-    return ACK_frame.get_modulated_frame()
-
-
 def gen_preamble():
     t = np.linspace(0, 1, 48000, endpoint=True, dtype=np.float32)
     t = t[0:60]
@@ -73,64 +58,6 @@ def write_byte_to_file(file_name, decoded_bits):
         write_to_file(file_name, byte)
 
 
-def gen_CRC8(string):
-    loc = [8, 2, 1, 0]
-    p = [0 for i in range(9)]
-    for i in loc:
-        p[i] = 1
-    info = list(string)
-    info = [int(i) for i in info]
-    info1 = list(string)
-    info1 = [int(i) for i in info1]
-    # print(info)
-    times = len(info)
-    n = 9
-    for i in range(8):
-        info.append(0)
-    consult = []
-    for i in range(times):
-        if info[i] == 1:
-            consult.append(1)
-            for j in range(n):
-                info[j + i] = info[j + i] ^ p[j]
-        else:
-            consult.append(0)
-    mod = info[-8::]
-    # print(mod)
-    code = info1.copy()
-    # print(code)
-    for i in mod:
-        code.append(i)
-    code = "".join('%s' % id for id in code)
-    # print(code)
-    return code
-
-
-def check_CRC8(string):
-    loc = [8, 2, 1, 0]
-    p = [0 for i in range(9)]
-    for i in loc:
-        p[i] = 1
-    info = list(string)
-    info = [int(i) for i in info]
-    times = len(info)
-    n = 9
-    consult = []
-    for i in range(times - 8):
-        if info[i] == 1:
-            consult.append(1)
-            for j in range(n):
-                info[j + i] = info[j + i] ^ p[j]
-        else:
-            consult.append(0)
-    mod = info[-8::]
-    # print(mod)
-    mod = int("".join('%s' % id for id in mod))
-    if mod == 0:
-        return True
-    else:
-        return False
-
 
 def modulate_string(string):
     modulated_array = []
@@ -140,6 +67,21 @@ def modulate_string(string):
         else:
             modulated_array.append(signal1)
     return modulated_array
+
+
+def predefine_ACK():
+    ACK_pre = []
+    for i in range(frame_num):
+        ACK_pre.append(single_ACK(i))
+    return ACK_pre
+
+
+def single_ACK(num):
+    """generate a single ACK frame"""
+    ACK_frame = PhyFrame()
+    ACK_frame.set_num(num)
+    ACK_frame.set_load(node2_addr, node1_addr, ACK, "")
+    return ACK_frame.get_modulated_frame()
 
 
 sample_rate = 48000
@@ -163,6 +105,9 @@ frame_length_with_CRC = frame_length + 28 * samples_per_bin
 frame_length_in_bit = bins_per_byte * (bytes_per_frame + 1) + 20
 frame_length_in_bit_with_CRC = frame_length_in_bit + 8
 
+node1_addr = "10010011"
+node2_addr = "01101100"
+
 ACK_buffer = []
 ACK_predefined = predefine_ACK()
 # 8: frame num bits 8: dest bits 8: src bits 4: type bits 8: CRC bits
@@ -171,8 +116,3 @@ ACK_length = samples_per_bin * (ACK_length_in_bit)
 
 retransmit_time = 1
 max_retransmit = 10
-
-MAC_load_limit = 200  # in bits length
-
-node1_addr = "10010011"
-node2_addr = "01101100"
