@@ -1,4 +1,5 @@
 import struct
+import time
 
 from all_globals import *
 from constant import *
@@ -33,6 +34,7 @@ class MAC(threading.Thread):
                 frame_with_CRC = data[i * frame_length_with_CRC: (i + 1) * frame_length_with_CRC]
                 self.put_data_into_TxBuffer(frame_with_CRC)
                 self.switch_to_Tx()
+                send_time[i] = time.time()
                 TxFrame = []
                 i += 1
                 self.check_ACK(0, i, data)
@@ -40,9 +42,6 @@ class MAC(threading.Thread):
                 pass
             print("Transmission finished! time used: ", time.time() - start)
         # Tx Done to clear Tx frame and set input index to 0
-        global TxFrame
-        global global_input_index
-        global detected_frames
         TxFrame = []
         flag = True
         start = 0
@@ -163,7 +162,7 @@ class MAC(threading.Thread):
                 res = False
                 if time.time() - send_time[i] > retransmit_time and send_time[i] != 0:
                     frame_retransmit[i] += 1
-                    if frame_retransmit >= max_retransmit:
+                    if frame_retransmit[i] >= max_retransmit:
                         print("link error! exit")
                         exit(-1)
                     else:
