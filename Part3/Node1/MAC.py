@@ -1,4 +1,5 @@
 import struct
+import threading
 import time
 
 import numpy as np
@@ -40,7 +41,7 @@ class MAC(threading.Thread):
             send_time[i] = time.time()
             TxFrame = []
             i += 1
-            if i % 49 and i >= 49:
+            if i % 49 == 0 and i >= 50:
                 self.check_ACK(0, i, data)
         while not self.check_ACK(0, frame_num, data):
             pass
@@ -134,6 +135,7 @@ class MAC(threading.Thread):
             load_bit = ""
             for j in range(bytes_per_frame):
                 load_bit += byte_to_str(file_data[input_index])
+                input_index += 1
             phy_frame = PhyFrame()
             phy_frame.set_num(i)
             phy_frame.set_load(node2_addr, node1_addr, data_frame, load_bit)
@@ -157,7 +159,7 @@ class MAC(threading.Thread):
                 ACK_frame.from_array(self.decode_ACK_bits(ACK_frame_array))
                 if ACK_frame.check() and ACK_frame.get_destination() == node1_addr:
                     if not ACK_confirmed[ACK_frame.get_decimal_num()]:
-                        print("ACK ", ACK_frame, " received!")
+                        print("ACK ", ACK_frame.get_decimal_num(), " received!")
                         ACK_confirmed[ACK_frame.get_decimal_num()] = True
                 else:
                     print("ACK CRC broken!")
@@ -176,7 +178,6 @@ class MAC(threading.Thread):
                     self.put_data_into_TxBuffer(frame_with_CRC_re.get_modulated_frame())
                     self.switch_to_Tx()
                     TxFrame = []
-                    res = False
         return res
 
 
@@ -199,6 +200,7 @@ class Rx(threading.Thread):
             physical_frame.from_array(decoded_bits)
             if physical_frame.check() and physical_frame.get_destination() == node1_addr and physical_frame.get_type() == data_frame:
                 # correct frame
+                detected_frames += 1
                 n_frame = physical_frame.get_decimal_num()
                 print("send ACK ", n_frame)
                 self.send_ACK(n_frame)
@@ -299,7 +301,6 @@ def callback(indata, outdata, frames, time, status):
     global is_noisy
     global silent_threshold
     global_buffer = np.append(global_buffer, indata[:, 0])
-
     if np.average(indata[:, 0]) > silent_threshold:
         is_noisy = True
     else:

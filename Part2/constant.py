@@ -176,7 +176,7 @@ latency = 0.0015
 block_size = 2048
 threshold = 10
 
-asio_id = 14
+asio_id = 10
 asio_in = sd.AsioSettings(channel_selectors=[0])
 asio_out = sd.AsioSettings(channel_selectors=[1])
 
