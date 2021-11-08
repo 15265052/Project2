@@ -18,7 +18,6 @@ class MAC(threading.Thread):
         global frame_rece
         global TxFrame
         global retransmit_time
-
         global global_input_index
         global detected_frames
         TxFrame = []
@@ -37,39 +36,41 @@ class MAC(threading.Thread):
                 send_time[i] = time.time()
                 TxFrame = []
                 i += 1
-                self.check_ACK(0, i, data)
+                if i % 49 == 0 and i >= 50:
+                    self.check_ACK(0, i, data)
             while not self.check_ACK(0, frame_num, data):
                 pass
             print("Transmission finished! time used: ", time.time() - start)
         # Tx Done to clear Tx frame and set input index to 0
-        TxFrame = []
-        flag = True
-        start = 0
-        global_input_index = 0
-        while detected_frames < frame_num:
-            if pointer + block_size > len(global_buffer):
-                continue
-            block_buffer = global_buffer[pointer: pointer + block_size]
-            pointer_frame = detect_preamble(block_buffer)
-            if not pointer_frame == "error":
-                if flag:
-                    start = time.perf_counter()
-                    flag = False
-                pointer += pointer_frame
-                # detect a frame, first to check its correctness
-                if pointer + frame_length_with_CRC - preamble_length > len(global_buffer):
-                    time.sleep(0.1)
-                frame_with_CRC_detected = global_buffer[pointer: pointer + frame_length_with_CRC - preamble_length]
-                self.put_frame_into_RxBuffer(frame_with_CRC_detected)
-                self.switch_to_Rx()
-                pointer += frame_length - preamble_length
-                continue
-            pointer += block_size
-        end = time.perf_counter()
-        global_pointer += pointer
-        print("receive finished! time used: ", end - start)
-        for frame in frame_rece:
-            write_byte_to_file("OUTPUT.bin", frame)
+        else:
+            TxFrame = []
+            flag = True
+            start = 0
+            global_input_index = 0
+            while detected_frames < frame_num:
+                if pointer + block_size > len(global_buffer):
+                    continue
+                block_buffer = global_buffer[pointer: pointer + block_size]
+                pointer_frame = detect_preamble(block_buffer)
+                if not pointer_frame == "error":
+                    if flag:
+                        start = time.perf_counter()
+                        flag = False
+                    pointer += pointer_frame
+                    # detect a frame, first to check its correctness
+                    if pointer + frame_length_with_CRC - preamble_length > len(global_buffer):
+                        time.sleep(0.1)
+                    frame_with_CRC_detected = global_buffer[pointer: pointer + frame_length_with_CRC - preamble_length]
+                    self.put_frame_into_RxBuffer(frame_with_CRC_detected)
+                    self.switch_to_Rx()
+                    pointer += frame_length - preamble_length
+                    continue
+                pointer += block_size
+            end = time.perf_counter()
+            global_pointer += pointer
+            print("receive finished! time used: ", end - start)
+            for frame in frame_rece:
+                write_byte_to_file("OUTPUT.bin", frame)
 
     def put_data_into_TxBuffer(self, data):
         global TxFrame
@@ -195,6 +196,7 @@ class Rx(threading.Thread):
             if check_CRC8(decoded_bits):
                 # frame is right
                 n_frame = int(decoded_bits[:8], 2)
+                print("sending ACK", n_frame)
                 self.send_ACK(n_frame)
                 if not frame_confirmed[n_frame]:
                     frame_confirmed[n_frame] = True

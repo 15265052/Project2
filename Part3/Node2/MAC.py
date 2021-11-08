@@ -1,8 +1,10 @@
 import struct
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 from Part3.all_globals import *
+from Part3.config.Type import data_frame
 from Part3.config.node2 import *
 from Part3.config.ACKConfig import *
 
@@ -31,6 +33,7 @@ class MAC(threading.Thread):
         global_input_index = 0
         pointer = global_pointer
         # Node2 receive first
+        print("start receiving")
         while detected_frames < frame_num:
             if pointer + block_size > len(global_buffer):
                 continue
@@ -157,7 +160,7 @@ class MAC(threading.Thread):
                 ACK_frame.from_array(self.decode_ACK_bits(ACK_frame_array))
                 if ACK_frame.check() and ACK_frame.get_destination() == node2_addr:
                     if not ACK_confirmed[ACK_frame.get_decimal_num()]:
-                        print("ACK ", ACK_frame, " received!")
+                        print("ACK ", ACK_frame.get_decimal_num(), " received!")
                         ACK_confirmed[ACK_frame.get_decimal_num()] = True
                 else:
                     print("ACK CRC broken!")
@@ -202,8 +205,13 @@ class Rx(threading.Thread):
                 n_frame = physical_frame.get_decimal_num()
                 print("send ACK ", n_frame)
                 self.send_ACK(n_frame)
-                frame_rece[n_frame] = physical_frame.get_load().get_data()
+                if not frame_confirmed[n_frame]:
+                    detected_frames += 1
+                    frame_confirmed[n_frame] = True
+                    frame_rece[n_frame] = physical_frame.get_load().get_data()
             else:
+                # plt.plot(RxFrame)
+                # plt.show()
                 print("CRC broken!")
             # wait until ACK was sent
             while global_status != "":
@@ -297,6 +305,9 @@ def callback(indata, outdata, frames, time, status):
     global global_status
     global is_noisy
     global silent_threshold
+    global ACK_buffer
+    global ACK_pointer
+
     global_buffer = np.append(global_buffer, indata[:, 0])
 
     if np.average(indata[:, 0]) > silent_threshold:
@@ -319,9 +330,6 @@ def callback(indata, outdata, frames, time, status):
         global_input_index += frames
 
     if global_status == "sending ACK":
-        global ACK_buffer
-        global ACK_pointer
         global_status = ""
-        outdata[:] = np.append(ACK_buffer[ACK_pointer], np.zeros(frames - len(ACK_buffer[ACK_pointer]))).reshape(frames,
-                                                                                                                 1)
+        outdata[:] = np.append(ACK_buffer[ACK_pointer], np.zeros(frames - len(ACK_buffer[ACK_pointer]))).reshape(frames, 1)
         ACK_pointer += 1

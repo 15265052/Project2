@@ -5,7 +5,6 @@ import numpy as np
 import sounddevice as sd
 from scipy import signal, integrate
 
-
 def gen_RTX():
     """
     RTX for inform receiver that it is about to transmit data
@@ -167,17 +166,17 @@ def check_CRC8(string):
     else:
         return False
 
-
+# 音量设置参数：输出： 35 输入：71
 sample_rate = 48000
 
-signal0 = (np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).astype(np.float32)
-signal1 = (-np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).astype(np.float32)
+signal0 = [0.5, 0.5, -0.5, -0.5]
+signal1 = [-0.5, -0.5, 0.5, 0.5]
 
 latency = 0.0015
 block_size = 2048
 threshold = 10
 
-asio_id = 12
+asio_id = 14
 asio_in = sd.AsioSettings(channel_selectors=[0])
 asio_out = sd.AsioSettings(channel_selectors=[1])
 
@@ -187,7 +186,7 @@ CTX = gen_CTX()
 
 preamble_length = len(preamble)
 bins_per_byte = 8
-samples_per_bin = 6
+samples_per_bin = 4
 frame_num = 250
 bytes_per_frame = 25
 frame_length = samples_per_bin * bins_per_byte * bytes_per_frame + preamble_length + 8 * samples_per_bin

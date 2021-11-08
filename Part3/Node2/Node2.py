@@ -2,13 +2,13 @@
 
 from MAC import *
 
-Node1 = MAC("Node2")
-Node1_Tx = Tx()
-Node1_Rx = Rx()
+Node2 = MAC("Node2")
+Node2_Tx = Tx()
+Node2_Rx = Rx()
 
-Node1.start()
-Node1_Tx.start()
-Node1_Rx.start()
+Node2.start()
+Node2_Tx.start()
+Node2_Rx.start()
 
 stream = set_stream()
 stream.start()

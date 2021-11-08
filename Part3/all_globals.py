@@ -28,4 +28,5 @@ RxFrame_lock = threading.Lock()
 is_noisy = False
 silent_threshold = 0.05
 ACK_pointer = 0
+ACK_pointer = 0
 

@@ -129,9 +129,10 @@ def modulate_string(string):
 
 sample_rate = 48000
 
-signal0 = (np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).astype(np.float32)
-signal1 = (-np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).astype(np.float32)
-
+# signal0 = (np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).astype(np.float32)
+# signal1 = (-np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).astype(np.float32)
+signal0 = [0.5, 0.5, -0.5, -0.5]
+signal1 = [-0.5, -0.5, 0.5, 0.5]
 latency = 0.0015
 block_size = 2048
 threshold = 10
@@ -140,7 +141,7 @@ preamble = gen_preamble()
 preamble_length = len(preamble)
 
 bins_per_byte = 8
-samples_per_bin = 6
+samples_per_bin = 4
 frame_num = 250
 bytes_per_frame = 25
 frame_length = samples_per_bin * bins_per_byte * bytes_per_frame + preamble_length + 8 * samples_per_bin

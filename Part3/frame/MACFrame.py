@@ -3,9 +3,10 @@ import numpy as np
 
 MAC_load_limit = 200  # in bits length
 sample_rate = 48000
-signal0 = (np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).astype(np.float32)
-signal1 = (-np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).astype(np.float32)
-
+# signal0 = (np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).astype(np.float32)
+# signal1 = (-np.sin(2 * np.pi * 9800 * np.arange(0, 0.000125, 1 / sample_rate))).astype(np.float32)
+signal0 = [0.5, 0.5, -0.5, -0.5]
+signal1 = [-0.5, -0.5, 0.5, 0.5]
 
 def modulate_string(string):
     modulated_array = []
