@@ -2,6 +2,7 @@ import struct
 import threading
 import time
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 from Part3.all_globals import *
@@ -41,10 +42,10 @@ class MAC(threading.Thread):
             send_time[i] = time.time()
             TxFrame = []
             i += 1
-            if i % 49 == 0 and i >= 50:
-                self.check_ACK(0, i, data)
-        while not self.check_ACK(0, frame_num, data):
-            pass
+            if i % 1 == 0 and i >= 1:
+                while not self.check_ACK(i-1, i, data):
+                    pass
+
         print("Node1 transmission finished! time used: ", time.time() - start)
         # Tx Done to clear Tx frame and set input index to 0
         # Then Node1 to Receive
@@ -52,7 +53,7 @@ class MAC(threading.Thread):
         flag = True
         start = 0
         global_input_index = 0
-        while detected_frames < frame_num:
+        while detected_frames < frame_num_2:
             if pointer + block_size > len(global_buffer):
                 continue
             block_buffer = global_buffer[pointer: pointer + block_size]
@@ -150,6 +151,7 @@ class MAC(threading.Thread):
         global global_buffer
         global TxFrame
         global global_pointer
+        global send_time
         while global_pointer < len(global_buffer):
             pointer_ACK = detect_preamble(global_buffer[global_pointer:global_pointer + 1024])
             if not pointer_ACK == 'error':
@@ -161,8 +163,6 @@ class MAC(threading.Thread):
                     if not ACK_confirmed[ACK_frame.get_decimal_num()]:
                         print("ACK ", ACK_frame.get_decimal_num(), " received!")
                         ACK_confirmed[ACK_frame.get_decimal_num()] = True
-                else:
-                    print("ACK CRC broken!")
                 global_pointer += 48
             global_pointer += 1024
         global_pointer = len(global_buffer) >> 2
@@ -173,11 +173,10 @@ class MAC(threading.Thread):
                 if time.time() - send_time[i] > retransmit_time and send_time[i] != 0:
                     print("ACK ", i, " time out, time used: ", time.time() - send_time[i], ", retransmit")
                     # retransmit
-                    frame_with_CRC_re = data[i]
-                    TxFrame = []
-                    self.put_data_into_TxBuffer(frame_with_CRC_re.get_modulated_frame())
+                    self.put_data_into_TxBuffer(data[i].get_modulated_frame())
                     self.switch_to_Tx()
                     TxFrame = []
+                    send_time[i] =time.time()
         return res
 
 
@@ -200,11 +199,13 @@ class Rx(threading.Thread):
             physical_frame.from_array(decoded_bits)
             if physical_frame.check() and physical_frame.get_destination() == node1_addr and physical_frame.get_type() == data_frame:
                 # correct frame
-                detected_frames += 1
                 n_frame = physical_frame.get_decimal_num()
                 print("send ACK ", n_frame)
                 self.send_ACK(n_frame)
-                frame_rece[n_frame] = physical_frame.get_load().get_data()
+                if not frame_confirmed[n_frame]:
+                    detected_frames += 1
+                    frame_confirmed[n_frame] = 1
+                    frame_rece[n_frame] = physical_frame.get_load().get_data()
             else:
                 print("CRC broken!")
             # wait until ACK was sent
@@ -269,6 +270,7 @@ class Tx(threading.Thread):
             # transmitting
             while global_input_index < len(TxFrame):
                 global_status = "sending data"
+            Idle()
             global_status = ""
             global_input_index = 0
             print("transmit done...")
@@ -290,9 +292,14 @@ def set_stream():
     sd.default.device[0] = asio_id
     sd.default.device[1] = asio_id
     sd.default.latency = latency
-    stream = sd.Stream(sample_rate, blocksize=block_size, dtype=np.float32, callback=callback, channels=1)
+    stream = sd.Stream(sample_rate, blocksize=2048, dtype=np.float32, callback=callback, channels=1)
     return stream
 
+def Idle():
+    global global_status
+    Idle_start = time.time()
+    while time.time() - Idle_start < 0.09:
+        global_status = "Idle"
 
 def callback(indata, outdata, frames, time, status):
     global global_buffer
@@ -300,13 +307,17 @@ def callback(indata, outdata, frames, time, status):
     global global_status
     global is_noisy
     global silent_threshold
-    global_buffer = np.append(global_buffer, indata[:, 0])
     if np.average(indata[:, 0]) > silent_threshold:
         is_noisy = True
     else:
         is_noisy = False
 
     if global_status == "":
+        # when not sending, then receiving
+        global_buffer = np.append(global_buffer, indata[:, 0])
+        outdata.fill(0)
+
+    if global_status == "Idle":
         outdata.fill(0)
 
     if global_status == "sending data":

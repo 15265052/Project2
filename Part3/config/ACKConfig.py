@@ -13,7 +13,7 @@ def single_ACK(num):
     ACK_frame = PhyFrame()
     ACK = "1010"
     ACK_frame.set_num(num)
-    ACK_frame.set_load(node1_addr, node2_addr, ACK, "")
+    ACK_frame.set_load(node2_addr, node1_addr, ACK, "")
     return ACK_frame.get_modulated_frame()
 
 

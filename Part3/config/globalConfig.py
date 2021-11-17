@@ -143,6 +143,7 @@ preamble_length = len(preamble)
 bins_per_byte = 8
 samples_per_bin = 4
 frame_num = 250
+frame_num_2 = 200
 bytes_per_frame = 25
 frame_length = samples_per_bin * bins_per_byte * bytes_per_frame + preamble_length + 8 * samples_per_bin
 frame_length_with_CRC = frame_length + 28 * samples_per_bin
@@ -156,5 +157,5 @@ node2_addr = "01101100"
 ACK_length_in_bit = 8 + 8 + 8 + 4 + 8
 ACK_length = samples_per_bin * ACK_length_in_bit
 
-retransmit_time = 1
+retransmit_time = 0.18
 max_retransmit = 10
