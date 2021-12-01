@@ -169,14 +169,14 @@ def check_CRC8(string):
 # 音量设置参数：输出： 35 输入：71
 sample_rate = 48000
 
-signal0 = [0.5, 0.5, -0.5, -0.5]
-signal1 = [-0.5, -0.5, 0.5, 0.5]
+signal0 = [0.5, 0.5, 0.5, -0.5, -0.5, -0.5]
+signal1 = [-0.5, -0.5, -0.5, 0.5, 0.5, 0.5]
 
 latency = 0.0015
 block_size = 2048
 threshold = 10
 
-asio_id = 10
+asio_id = 12
 asio_in = sd.AsioSettings(channel_selectors=[0])
 asio_out = sd.AsioSettings(channel_selectors=[1])
 
@@ -186,7 +186,7 @@ CTX = gen_CTX()
 
 preamble_length = len(preamble)
 bins_per_byte = 8
-samples_per_bin = 4
+samples_per_bin = 6
 frame_num = 250
 bytes_per_frame = 25
 frame_length = samples_per_bin * bins_per_byte * bytes_per_frame + preamble_length + 8 * samples_per_bin
@@ -197,4 +197,4 @@ frame_length_in_bit_with_CRC = frame_length_in_bit + 8
 ACK_buffer = []
 ACK_predefined = predefine_ACK()
 retransmit_time = 1
-max_retransmit = 10
+max_retransmit = 3

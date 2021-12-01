@@ -33,13 +33,13 @@ class MAC(threading.Thread):
                 frame_with_CRC = data[i * frame_length_with_CRC: (i + 1) * frame_length_with_CRC]
                 self.put_data_into_TxBuffer(frame_with_CRC)
                 self.switch_to_Tx()
-                send_time[i] = time.time()
+                # send_time[i] = time.time()
                 TxFrame = []
                 i += 1
-                if i % 9 == 0 and i >= 10:
-                    self.check_ACK(0, i, data)
-            while not self.check_ACK(0, frame_num, data):
-                pass
+            #     if i % 49 == 0 and i >= 49:
+            #         self.check_ACK(0, i, data)
+            # while not self.check_ACK(0, frame_num, data):
+            #     pass
             print("Transmission finished! time used: ", time.time() - start)
         # Tx Done to clear Tx frame and set input index to 0
         else:
